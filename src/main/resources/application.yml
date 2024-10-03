@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: blog-service
+
+  #datasource
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: url
+    username: username
+    password: password
+
+  #jpa
+  jpa:
+    show-sql: 'true'
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: 'true'
+
+  #security
+  profiles:
+    include: secret
