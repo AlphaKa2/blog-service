@@ -1,6 +1,7 @@
 package com.alphaka.blogservice.service;
 
 import com.alphaka.blogservice.entity.Blog;
+import com.alphaka.blogservice.exception.custom.BlogCreationFailedException;
 import com.alphaka.blogservice.repository.BlogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,7 @@ public class BlogService {
             log.info("Blog created: {}", blog);
         } catch (Exception e) {
             log.error("Blog creation failed: {}", e.getMessage());
-            //throw new BlogCreationFailedException("Blog creation failed: " + e.getMessage());
+            throw new BlogCreationFailedException();
         }
     }
 

@@ -2,6 +2,8 @@ package com.alphaka.blogservice.service;
 
 import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.UserSignUpEvent;
+import com.alphaka.blogservice.exception.custom.BlogCreationFailedException;
+import com.alphaka.blogservice.exception.custom.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -27,7 +29,7 @@ public class EventListenerService {
         log.info("Checking user existence for ID: {}", userSignUpEvent.getId());
         if (!userClient.isUserExists(userSignUpEvent.getId())) {
             log.error("User not found for ID: {}", userSignUpEvent.getId());
-            //throw new UserNotFoundException("User not found with ID: " + userSignUpEvent.getId());
+            throw new UserNotFoundException();
         }
         log.info("User found for ID: {}", userSignUpEvent.getId());
 
@@ -37,7 +39,7 @@ public class EventListenerService {
             log.info("Blog created for user: {}", userSignUpEvent.getId());
         } catch (Exception e) {
             log.error("Blog creation failed: {}", e.getMessage());
-            //throw new BlogCreationFailedException("Blog creation failed: " + e.getMessage());
+            throw new BlogCreationFailedException();
         }
     }
 }
