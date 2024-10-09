@@ -10,7 +10,9 @@ import java.util.List;
 
 @Entity
 @Getter
-@Table(name = "tags")
+@Table(name = "tags", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"tagName"})
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Tag {
 
@@ -19,8 +21,9 @@ public class Tag {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String name;
+    private String tagName;
 
-    @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL, orphanRemoval = true)
+    // 태그 삭제 시 연관된 포스트 태그들도 삭제(physical delete)
+    @OneToMany(mappedBy = "tag", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<PostTag> postTags = new ArrayList<>();
 }
