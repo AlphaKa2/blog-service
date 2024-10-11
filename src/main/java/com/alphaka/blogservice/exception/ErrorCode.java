@@ -7,12 +7,18 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum ErrorCode {
 
+    // auth
+    UNAUTHORIZED(401, "AUT001", "인증되지 않은 사용자입니다."),
+
     // User
     USER_NOT_FOUND(404, "USR001", "존재하지 않는 사용자입니다."),
 
-   // Blog
+    // Blog
     BLOG_CREATION_FAILED(500, "BLG001", "블로그 생성 중 오류가 발생했습니다."),
     BLOG_NOT_FOUND(404, "BLG002", "존재하지 않는 블로그입니다."),
+
+    // Post
+    POST_NOT_FOUND(404, "PST001", "존재하지 않는 포스트입니다."),
 
     // S3
     S3_FILE_EMPTY(400, "S3_001", "파일이 비어있습니다."),

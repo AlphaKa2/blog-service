@@ -2,6 +2,7 @@ package com.alphaka.blogservice.controller;
 
 import com.alphaka.blogservice.dto.ApiResponse;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
+import com.alphaka.blogservice.dto.request.PostUpdateRequest;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,17 @@ public class PostController {
     public ApiResponse<PostResponse> createPost(@RequestHeader("Authorization") String token,
                                                 @RequestBody PostCreateRequest request) {
         PostResponse response = postService.createPost(token, request);
+        return new ApiResponse<>(response);
+    }
+
+    /**
+     * 게시글 수정
+     */
+    @PutMapping("/update/{postId}")
+    public ApiResponse<PostResponse> updatePost(@RequestHeader("Authorization") String token,
+                                                @PathVariable Long postId,
+                                                @RequestBody PostUpdateRequest request) {
+        PostResponse response = postService.updatePost(token, postId, request);
         return new ApiResponse<>(response);
     }
 }
