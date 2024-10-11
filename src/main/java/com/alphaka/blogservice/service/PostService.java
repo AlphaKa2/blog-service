@@ -51,7 +51,7 @@ public class PostService {
                 .blog(blogRepository.findById(request.getBlogId()).orElseThrow(BlogNotFoundException::new))
                 .title(request.getTitle())
                 .content(processedContent)
-                .isPublic(!request.isPrivate())
+                .isPublic(request.isPublic())
                 .isCommentable(request.isCommentable())
                 .build();
 
@@ -77,7 +77,7 @@ public class PostService {
 
         String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
 
-        post.updatePost(request.getTitle(), processedContent, request.isPrivate(), request.isCommentable());
+        post.updatePost(request.getTitle(), processedContent, request.isPublic(), request.isCommentable());
         postRepository.save(post);
         log.info("게시글 수정 완료 - Post ID: {}", post.getId());
 
