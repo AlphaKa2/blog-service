@@ -26,8 +26,9 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class PostService {
 
-    private final S3Service s3Service;
     private final AuthClient authClient;
+    private final S3Service s3Service;
+    private final TagService tagService;
     private final BlogRepository blogRepository;
     private final PostRepository postRepository;
     private final PostMapper postMapper = PostMapper.INSTANCE;
@@ -58,6 +59,9 @@ public class PostService {
         postRepository.save(post);
         log.info("게시글 작성 완료 - Post ID: {}", post.getId());
 
+        // 태그 업데이트
+        tagService.updateTagsForPost(post, request.getTagNames());
+
         return postMapper.toResponse(post);
     }
 
@@ -80,6 +84,9 @@ public class PostService {
         post.updatePost(request.getTitle(), processedContent, request.isPublic(), request.isCommentable());
         postRepository.save(post);
         log.info("게시글 수정 완료 - Post ID: {}", post.getId());
+
+        // 태그 업데이트
+        tagService.updateTagsForPost(post, request.getTagNames());
 
         return postMapper.toResponse(post);
     }
