@@ -51,7 +51,7 @@ public class PostService {
                 .blog(blogRepository.findById(request.getBlogId()).orElseThrow(BlogNotFoundException::new))
                 .title(request.getTitle())
                 .content(processedContent)
-                .isPublic(!request.isPrivate())
+                .isPublic(request.isPublic())
                 .isCommentable(request.isCommentable())
                 .build();
 
@@ -77,12 +77,29 @@ public class PostService {
 
         String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
 
-        post.updatePost(request.getTitle(), processedContent, request.isPrivate(), request.isCommentable());
+        post.updatePost(request.getTitle(), processedContent, request.isPublic(), request.isCommentable());
         postRepository.save(post);
         log.info("게시글 수정 완료 - Post ID: {}", post.getId());
 
         return postMapper.toResponse(post);
     }
+
+    /**
+     * 게시글 삭제
+     * @param token JWT 토큰
+     * @param postId 게시글 ID
+     */
+    @Transactional
+    public void deletePost(String token, Long postId) {
+        log.info("게시글 삭제 요청 - Post ID: {}", postId);
+
+        Long userId = getAuthenticatedUserId(token);
+        Post post = validatePostOwnership(postId, userId);  // 게시글 작성자 확인
+
+        postRepository.delete(post);
+        log.info("게시글 삭제 완료 - Post ID: {}", post.getId());
+    }
+
 
     /**
      * 현재 인증된 사용자 ID를 추출하고 확인

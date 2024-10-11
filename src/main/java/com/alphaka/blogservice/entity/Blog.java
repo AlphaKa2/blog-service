@@ -25,6 +25,11 @@ public class Blog extends DeletableBaseEntity {
     @OneToMany(mappedBy = "blog", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts = new ArrayList<>();
 
+    @Builder
+    public Blog(Long userId) {
+        this.userId = userId;
+    }
+
     // 블로그 삭제 시 연관된 포스트들도 삭제(soft delete)
     @PreRemove
     public void preRemove() {
