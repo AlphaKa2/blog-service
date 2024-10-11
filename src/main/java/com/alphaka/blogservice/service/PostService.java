@@ -11,6 +11,7 @@ import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
 import com.alphaka.blogservice.repository.BlogRepository;
 import com.alphaka.blogservice.repository.PostRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,6 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class PostService {
 
-    private final AuthClient authClient;
     private final S3Service s3Service;
     private final TagService tagService;
     private final BlogRepository blogRepository;
@@ -35,15 +35,15 @@ public class PostService {
 
     /**
      * 게시글 작성
-     * @param token JWT 토큰
+     * @param httpRequest HttpServletRequest
      * @param request PostCreateRequest
      * @return PostResponse
      */
     @Transactional
-    public PostResponse createPost(String token, PostCreateRequest request) {
+    public PostResponse createPost(HttpServletRequest httpRequest, PostCreateRequest request) {
         log.info("게시글 작성 요청 - Blog ID: {}, Title: {}", request.getBlogId(), request.getTitle());
 
-        Long userId = getAuthenticatedUserId(token);  // 사용자 ID 추출 및 확인
+        Long userId = getAuthenticatedUserId(httpRequest);  // 사용자 ID 추출 및 확인
 
         String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
 
@@ -67,16 +67,16 @@ public class PostService {
 
     /**
      * 게시글 수정
-     * @param token JWT 토큰
+     * @param httpRequest HttpServletRequest
      * @param postId 게시글 ID
      * @param request PostUpdateRequest
      * @return PostResponse
      */
     @Transactional
-    public PostResponse updatePost(String token, Long postId, PostUpdateRequest request) {
+    public PostResponse updatePost(HttpServletRequest httpRequest, Long postId, PostUpdateRequest request) {
         log.info("게시글 수정 요청 - Post ID: {}", postId);
 
-        Long userId = getAuthenticatedUserId(token);
+        Long userId = getAuthenticatedUserId(httpRequest);
         Post post = validatePostOwnership(postId, userId);  // 게시글 작성자 확인
 
         String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
@@ -93,14 +93,14 @@ public class PostService {
 
     /**
      * 게시글 삭제
-     * @param token JWT 토큰
+     * @param request HttpServletRequest
      * @param postId 게시글 ID
      */
     @Transactional
-    public void deletePost(String token, Long postId) {
+    public void deletePost(HttpServletRequest request, Long postId) {
         log.info("게시글 삭제 요청 - Post ID: {}", postId);
 
-        Long userId = getAuthenticatedUserId(token);
+        Long userId = getAuthenticatedUserId(request);
         Post post = validatePostOwnership(postId, userId);  // 게시글 작성자 확인
 
         postRepository.delete(post);
@@ -110,13 +110,26 @@ public class PostService {
 
     /**
      * 현재 인증된 사용자 ID를 추출하고 확인
-     * @param token JWT 토큰
+     * @param request HttpServletRequest
      * @return 사용자 ID
      */
-    private Long getAuthenticatedUserId(String token) {
-        Long userId = authClient.extractUserId(token);
-        log.info("인증된 사용자 ID: {}", userId);
-        return userId;
+    private Long getAuthenticatedUserId(HttpServletRequest request) {
+        String userIdHeader = request.getHeader("X-USER-ID");
+
+        if (userIdHeader == null) {
+            log.error("헤더에서 사용자 정보를 찾을 수 없습니다.");
+            throw new UnauthorizedException();
+        }
+
+        // 사용자 ID가 숫자인지 확인
+        try {
+            Long userId = Long.parseLong(userIdHeader);
+            log.info("인증된 사용자 ID: {}", userId);
+            return userId;
+        } catch (NumberFormatException e) {
+            log.error("헤더의 사용자 ID가 유효하지 않습니다: {}", userIdHeader);
+            throw new UnauthorizedException();
+        }
     }
 
     /**
@@ -143,7 +156,6 @@ public class PostService {
      * @param videos 비디오 파일 목록
      * @return 파일 경로가 반영된 HTML 내용
      */
-    @Transactional
     public String processFiles(String content, List<MultipartFile> images, List<MultipartFile> videos) {
         log.info("게시글 미디어 파일 처리 시작");
 
