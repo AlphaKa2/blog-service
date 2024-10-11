@@ -34,3 +34,16 @@ spring:
   #security
   profiles:
     include: secret
+
+#aws s3
+cloud:
+  aws:
+    s3:
+      bucket: bucket-name
+    stack:
+      auto: false
+    region:
+      static: region
+    credentials:
+      access-key: access-key
+      secret-key: secret-key
