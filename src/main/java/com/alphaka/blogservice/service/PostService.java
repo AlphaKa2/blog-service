@@ -169,10 +169,14 @@ public class PostService {
     // 이미지 파일 처리
     private String processImages(String content, List<MultipartFile> images) {
         for (MultipartFile image : images) {
-            String imageName = Objects.requireNonNull(image.getOriginalFilename());
-            if (content.contains(imageName)) {
-                String imageUrl = s3Service.uploadPostImage(image);
-                content = content.replace(imageName, imageUrl);  // HTML에서 이미지 파일명을 S3 URL로 교체
+            try {
+                String imageName = Objects.requireNonNull(image.getOriginalFilename());
+                if (content.contains(imageName)) {
+                    String imageUrl = s3Service.uploadPostImage(image);
+                    content = content.replace(imageName, imageUrl);  // HTML에서 이미지 파일명을 S3 URL로 교체
+                }
+            } catch (Exception e) {
+                log.error("이미지 처리 중 오류가 발생했습니다: {}", image.getOriginalFilename(), e);
             }
         }
         return content;
@@ -181,10 +185,14 @@ public class PostService {
     // 비디오 파일 처리
     private String processVideos(String content, List<MultipartFile> videos) {
         for (MultipartFile video : videos) {
-            String videoName = Objects.requireNonNull(video.getOriginalFilename());
-            if (content.contains(videoName)) {
-                String videoUrl = s3Service.uploadPostVideo(video);
-                content = content.replace(videoName, videoUrl);  // HTML에서 비디오 파일명을 S3 URL로 교체
+            try {
+                String videoName = Objects.requireNonNull(video.getOriginalFilename());
+                if (content.contains(videoName)) {
+                    String videoUrl = s3Service.uploadPostVideo(video);
+                    content = content.replace(videoName, videoUrl);  // HTML에서 비디오 파일명을 S3 URL로 교체
+                }
+            } catch (Exception e) {
+                log.error("비디오 처리 중 오류가 발생했습니다: {}", video.getOriginalFilename(), e);
             }
         }
         return content;
