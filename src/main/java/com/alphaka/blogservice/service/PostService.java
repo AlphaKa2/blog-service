@@ -5,6 +5,7 @@ import com.alphaka.blogservice.client.AuthClient;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.entity.Post;
+import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
 import com.alphaka.blogservice.repository.BlogRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,17 @@ public class PostService {
         log.info("게시글 작성 완료 - Post ID: {}", post.getId());
 
         return postMapper.toResponse(post);
+    }
+
+    /**
+     * 현재 인증된 사용자 ID를 추출하고 확인
+     * @param token JWT 토큰
+     * @return 사용자 ID
+     */
+    private Long getAuthenticatedUserId(String token) {
+        Long userId = authClient.extractUserId(token);
+        log.info("인증된 사용자 ID: {}", userId);
+        return userId;
     }
 
     /**
