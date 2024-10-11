@@ -35,4 +35,14 @@ public class PostController {
         PostResponse response = postService.updatePost(token, postId, request);
         return new ApiResponse<>(response);
     }
+
+    /**
+     * 게시글 삭제
+     */
+    @DeleteMapping("/delete/{postId}")
+    public ApiResponse<Void> deletePost(@RequestHeader("Authorization") String token,
+                                        @PathVariable Long postId) {
+        postService.deletePost(token, postId);
+        return new ApiResponse<>(null);
+    }
 }
