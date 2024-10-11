@@ -2,6 +2,7 @@ package com.alphaka.blogservice.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -49,6 +50,16 @@ public class Post extends DeletableBaseEntity {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Like> likes = new ArrayList<>();
+
+    @Builder
+    public Post(Long userId, Blog blog, String title, String content, boolean isPublic, boolean isCommentable) {
+        this.userId = userId;
+        this.blog = blog;
+        this.title = title;
+        this.content = content;
+        this.isPublic = isPublic;
+        this.isCommentable = isCommentable;
+    }
 
     // 포스트 삭제 시 연관된 댓글들도 삭제(soft delete)
     @PreRemove
