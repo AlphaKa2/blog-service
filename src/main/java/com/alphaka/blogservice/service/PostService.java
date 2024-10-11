@@ -3,9 +3,12 @@ package com.alphaka.blogservice.service;
 import com.alphaka.blogservice.Mapper.PostMapper;
 import com.alphaka.blogservice.client.AuthClient;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
+import com.alphaka.blogservice.dto.request.PostUpdateRequest;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
+import com.alphaka.blogservice.exception.custom.PostNotFoundException;
+import com.alphaka.blogservice.exception.custom.UnauthorizedException;
 import com.alphaka.blogservice.repository.BlogRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +61,28 @@ public class PostService {
         return postMapper.toResponse(post);
     }
 
+    /**
+     * 게시글 수정
+     * @param token JWT 토큰
+     * @param postId 게시글 ID
+     * @param request PostUpdateRequest
+     * @return PostResponse
+     */
+    @Transactional
+    public PostResponse updatePost(String token, Long postId, PostUpdateRequest request) {
+        log.info("게시글 수정 요청 - Post ID: {}", postId);
 
+        Long userId = getAuthenticatedUserId(token);
+        Post post = validatePostOwnership(postId, userId);  // 게시글 작성자 확인
+
+        String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
+
+        post.updatePost(request.getTitle(), processedContent, request.isPrivate(), request.isCommentable());
+        postRepository.save(post);
+        log.info("게시글 수정 완료 - Post ID: {}", post.getId());
+
+        return postMapper.toResponse(post);
+    }
 
     /**
      * 현재 인증된 사용자 ID를 추출하고 확인
@@ -69,6 +93,23 @@ public class PostService {
         Long userId = authClient.extractUserId(token);
         log.info("인증된 사용자 ID: {}", userId);
         return userId;
+    }
+
+    /**
+     * 게시글 작성자인지 확인
+     * @param postId 게시글 ID
+     * @param userId 사용자 ID
+     * @return Post 객체
+     */
+    private Post validatePostOwnership(Long postId, Long userId) {
+        Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
+
+        if (!post.getUserId().equals(userId)) {
+            log.error("게시글 작성자가 아닙니다 - Post ID: {}, User ID: {}", post.getId(), userId);
+            throw new UnauthorizedException();
+        }
+
+        return post;
     }
 
     /**

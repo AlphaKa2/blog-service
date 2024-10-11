@@ -61,6 +61,14 @@ public class Post extends DeletableBaseEntity {
         this.isCommentable = isCommentable;
     }
 
+    // 게시글 수정
+    public void updatePost(String title, String content, boolean isPublic, boolean isCommentable) {
+        this.title = title;
+        this.content = content;
+        this.isPublic = isPublic;
+        this.isCommentable = isCommentable;
+    }
+
     // 포스트 삭제 시 연관된 댓글들도 삭제(soft delete)
     @PreRemove
     public void preRemove() {
