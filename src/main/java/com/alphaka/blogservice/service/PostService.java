@@ -58,6 +58,8 @@ public class PostService {
         return postMapper.toResponse(post);
     }
 
+
+
     /**
      * 현재 인증된 사용자 ID를 추출하고 확인
      * @param token JWT 토큰
@@ -80,8 +82,8 @@ public class PostService {
     public String processFiles(String content, List<MultipartFile> images, List<MultipartFile> videos) {
         log.info("게시글 미디어 파일 처리 시작");
 
-        content = processImages(content, images);
-        content = processVideos(content, videos);
+        content = processImages(content, images != null ? images : List.of());
+        content = processVideos(content, videos != null ? videos : List.of());
 
         log.info("게시글 미디어 파일 처리 완료");
         return content;
