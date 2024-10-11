@@ -28,4 +28,6 @@ public class PostUpdateRequest {
 
     private List<MultipartFile> images;
     private List<MultipartFile> videos;
+
+    private List<String> tagNames;
 }
