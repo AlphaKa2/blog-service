@@ -21,11 +21,13 @@ public class Like {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
-    private Long targetId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private Post post;
 
-    @Column(nullable = false)
-    private TargetType targetType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "comment_id")
+    private Comment comment;
 
     @CreationTimestamp
     @Column(nullable = false)

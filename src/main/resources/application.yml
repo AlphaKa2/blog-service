@@ -18,6 +18,32 @@ spring:
       hibernate:
         format_sql: 'true'
 
+  #Kafka
+  kafka:
+    bootstrap-servers: url
+    consumer:
+      group-id: blog-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: '*'
+
   #security
   profiles:
     include: secret
+
+#aws s3
+cloud:
+  aws:
+    s3:
+      bucket: bucket-name
+    stack:
+      auto: false
+    region:
+      static: region
+    credentials:
+      access-key: access-key
+      secret-key: secret-key
