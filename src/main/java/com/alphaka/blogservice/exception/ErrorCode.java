@@ -20,6 +20,10 @@ public enum ErrorCode {
     // Post
     POST_NOT_FOUND(404, "PST001", "존재하지 않는 포스트입니다."),
 
+    // Comment
+    COMMENT_NOT_FOUND(404, "CMT001", "존재하지 않는 댓글입니다."),
+    PARENT_COMMENT_NOT_FOUND(404, "CMT002", "존재하지 않는 부모 댓글입니다."),
+
     // S3
     S3_FILE_EMPTY(400, "S3_001", "파일이 비어있습니다."),
     S3_FILE_EXTENSION_INVALID(400, "S3_002", "지원하지 않는 파일 확장자입니다."),
