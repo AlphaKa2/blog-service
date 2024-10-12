@@ -13,9 +13,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CommentUpdateRequest {
 
-    @NotNull(message = "댓글 ID는 필수입니다.")
-    private Long commentId;
-
     @NotNull(message = "게시글 ID는 필수입니다.")
     private Long postId;
 
