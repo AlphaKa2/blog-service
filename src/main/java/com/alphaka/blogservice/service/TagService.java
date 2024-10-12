@@ -24,8 +24,7 @@ public class TagService {
 
     /**
      * 게시글의 태그 정보를 업데이트
-     *
-     * @param post     게시글
+     * @param post 게시글
      * @param tagNames 태그 목록
      */
     @Transactional
@@ -43,8 +42,8 @@ public class TagService {
                 .filter(tagName -> !existingTagNames.contains(tagName))
                 .toList();
 
-        List<String> tagsToRemove = tagNames.stream()
-                .filter(tagName -> !tagNames.contains(tagName))
+        List<String> tagsToRemove = existingTagNames.stream()
+                .filter(existingTagName -> !tagNames.contains(existingTagName))
                 .toList();
 
         // 게시글에 태그 추가
@@ -102,17 +101,31 @@ public class TagService {
      * @return 태그 목록
      */
     private List<Tag> findOrCreateTags(List<String> tagNames) {
-        List<Tag> tags = new ArrayList<>();
-        for (String tagName : tagNames) {
-            Tag tag = tagRepository.findByTagName(tagName)
-                    .orElseGet(() -> {
-                        Tag newTag = Tag.builder()
-                                .tagName(tagName)
-                                .build();
-                        return tagRepository.save(newTag);
-                    });
-            tags.add(tag);
-        }
-        return tags;
+        // 주어진 태그 중에서 존재하는 태그 모두 조회
+        List<Tag> existingTags = tagRepository.findByTagNameIn(tagNames);
+
+        // 기존 태그 이름만 추출
+        List<String> existingTagNames = existingTags.stream()
+                .map(Tag::getTagName)
+                .toList();
+
+        // 존재하지 않는 태그 이름 필터링하여 새로 생성할 태그 목록 추출
+        List<String> tagsToCreate = tagNames.stream()
+                .filter(tagName -> !existingTagNames.contains(tagName))
+                .toList();
+
+        // 새로 생성할 태그 객체 리스트
+        List<Tag> newTags = tagsToCreate.stream()
+                .map(tagName -> Tag.builder().tagName(tagName).build())
+                .toList();
+
+        // 새로 생성한 태그 저장
+        tagRepository.saveAll(newTags);
+
+        // 기존 태그와 새로 생성한 태그를 합쳐서 반환
+        List<Tag> allTags = new ArrayList<>(existingTags);
+        allTags.addAll(newTags);
+
+        return allTags;
     }
 }

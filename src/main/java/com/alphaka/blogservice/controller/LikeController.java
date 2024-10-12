@@ -1,6 +1,6 @@
 package com.alphaka.blogservice.controller;
 
-import com.alphaka.blogservice.dto.ApiResponse;
+import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.service.LikeService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
