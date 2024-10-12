@@ -2,6 +2,7 @@ package com.alphaka.blogservice.controller;
 
 import com.alphaka.blogservice.dto.ApiResponse;
 import com.alphaka.blogservice.dto.request.CommentCreateRequest;
+import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
 import com.alphaka.blogservice.service.CommentService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,27 @@ public class CommentController {
     public ApiResponse<Void> createComment(HttpServletRequest httpRequest,
                                      @RequestBody CommentCreateRequest request) {
         commentService.createComment(httpRequest, request);
+        return new ApiResponse<>(null);
+    }
+
+    /**
+     * 댓글 수정
+     */
+    @PutMapping("/{commentId}")
+    public ApiResponse<Void> updateComment(HttpServletRequest httpRequest,
+                                     @PathVariable("commentId") Long commentId,
+                                     @RequestBody CommentUpdateRequest request) {
+        commentService.updateComment(httpRequest, commentId, request);
+        return new ApiResponse<>(null);
+    }
+
+    /**
+     * 댓글 삭제
+     */
+    @DeleteMapping("/{commentId}")
+    public ApiResponse<Void> deleteComment(HttpServletRequest httpRequest,
+                                     @PathVariable("commentId") Long commentId) {
+        commentService.deleteComment(httpRequest, commentId);
         return new ApiResponse<>(null);
     }
 }
