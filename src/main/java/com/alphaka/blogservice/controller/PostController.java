@@ -19,7 +19,7 @@ public class PostController {
     /**
      * 게시글 작성
      */
-    @PostMapping("/create")
+    @PostMapping()
     public ApiResponse<PostResponse> createPost(HttpServletRequest httpRequest,
                                                 @RequestBody PostCreateRequest request) {
         PostResponse response = postService.createPost(httpRequest, request);
@@ -29,7 +29,7 @@ public class PostController {
     /**
      * 게시글 수정
      */
-    @PutMapping("/update/{postId}")
+    @PutMapping("/{postId}")
     public ApiResponse<PostResponse> updatePost(HttpServletRequest httpRequest,
                                                 @PathVariable Long postId,
                                                 @RequestBody PostUpdateRequest request) {
@@ -40,7 +40,7 @@ public class PostController {
     /**
      * 게시글 삭제
      */
-    @DeleteMapping("/delete/{postId}")
+    @DeleteMapping("/{postId}")
     public ApiResponse<Void> deletePost(HttpServletRequest request,
                                         @PathVariable Long postId) {
         postService.deletePost(request, postId);
