@@ -64,7 +64,7 @@ public class CommentService {
         commentRepository.save(comment);
         log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
 
-        return commentMapper.toResponse(comment, userProfile);
+        return commentMapper.toResponse(comment, userProfile.getNickname());
     }
 
     /**
@@ -89,7 +89,7 @@ public class CommentService {
         commentRepository.save(comment);
         log.info("댓글 수정 완료 - Comment ID: {}", comment.getId());
 
-        return commentMapper.toResponse(comment, userProfile);
+        return commentMapper.toResponse(comment, userProfile.getNickname());
     }
 
     /**
