@@ -1,7 +1,7 @@
 package com.alphaka.blogservice.service;
 
 import com.alphaka.blogservice.client.UserClient;
-import com.alphaka.blogservice.dto.UserSignUpEvent;
+import com.alphaka.blogservice.dto.event.UserSignUpEvent;
 import com.alphaka.blogservice.exception.custom.BlogCreationFailedException;
 import com.alphaka.blogservice.exception.custom.UserNotFoundException;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.alphaka.blogservice.exception;
 
-import com.alphaka.blogservice.dto.ErrorResponse;
+import com.alphaka.blogservice.dto.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

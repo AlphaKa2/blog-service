@@ -1,4 +1,4 @@
-package com.alphaka.blogservice.dto;
+package com.alphaka.blogservice.dto.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
