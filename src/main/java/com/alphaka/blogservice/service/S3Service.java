@@ -28,7 +28,7 @@ public class S3Service {
 
     private final AmazonS3 amazonS3;
 
-    @Value("${cloud.aws.s3.bucketName}")
+    @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
 
     // 프로필 이미지 업로드 (upload 폴더)
