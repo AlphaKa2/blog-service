@@ -5,6 +5,7 @@ import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.request.PostUpdateRequest;
 import com.alphaka.blogservice.dto.request.UserProfile;
+import com.alphaka.blogservice.dto.response.BlogPostListResponse;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.entity.Blog;
 import com.alphaka.blogservice.entity.Post;
@@ -16,12 +17,16 @@ import com.alphaka.blogservice.repository.PostRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,6 +41,59 @@ public class PostService {
     private final BlogRepository blogRepository;
     private final PostRepository postRepository;
     private final PostMapper postMapper = PostMapper.INSTANCE;
+
+    /**
+     * 특정 블로그의 게시글 목록 조회
+     * @param nickname 블로그 닉네임
+     * @return List<BlogPostListResponse> 게시글 정보 목록
+     */
+    public List<BlogPostListResponse> getBlogPostList(String nickname) {
+        log.info("블로그 게시글 목록 조회 요청 - Nickname: {}", nickname);
+
+        // 닉네임을 통해 사용자 ID 조회
+        Long userId = userClient.findUserIdByNickname(nickname);
+
+        // 블로그 조회
+        Blog blog = blogRepository.findById(userId).orElseThrow(BlogNotFoundException::new);
+
+        // JPQL 쿼리를 통해 게시글별 좋아요 수와 댓글 수를 조회
+        List<Object[]> postLikeCommentCounts = postRepository.findPostLikeAndCommentCountsByBlogId(blog.getId());
+
+        // 결과를 DTO로 변환하여 처리
+        List<BlogPostListResponse> postList = postLikeCommentCounts.stream()
+                .map(result -> {
+                    Long postId = (Long) result[0];
+                    Long likeCount = (Long) result[1];
+                    Long commentCount = (Long) result[2];
+
+                    // 게시글 정보를 조회 (필요한 다른 정보 추가 가능)
+                    Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
+
+                    // 첫 번째 이미지를 대표 이미지로 설정
+                    String representativeImage = extractFirstImage(post.getContent());
+
+                    // 태그 목록 추출
+                    List<String> tagNames = post.getPostTags().stream()
+                            .map(postTag -> postTag.getTag().getTagName())
+                            .collect(Collectors.toList());
+
+                    return BlogPostListResponse.builder()
+                            .postId(postId)
+                            .title(post.getTitle())
+                            .contentSnippet(extractContentSnippet(post.getContent()))
+                            .representativeImage(representativeImage)
+                            .likeCount(likeCount.intValue())  // Long -> int 변환
+                            .commentCount(commentCount.intValue())  // Long -> int 변환
+                            .tags(tagNames)
+                            .createdAt(post.getCreatedAt().toString())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+
+        log.info("블로그의 게시글 리스트 조회 완료 - Nickname: {}", nickname);
+        return postList;
+    }
 
     /**
      * 게시글 작성
@@ -71,7 +129,7 @@ public class PostService {
         // 태그 처리
         tagService.updateTagsForPost(post, request.getTagNames());
 
-        return postMapper.toResponse(post);
+        return postMapper.toResponse(post, userProfile.getNickname());
     }
 
     /**
@@ -102,7 +160,7 @@ public class PostService {
         // 태그 업데이트
         tagService.updateTagsForPost(post, request.getTagNames());
 
-        return postMapper.toResponse(post);
+        return postMapper.toResponse(post, userProfile.getNickname());
     }
 
     /**
@@ -185,5 +243,40 @@ public class PostService {
             }
         }
         return content;
+    }
+
+    /**
+     * HTML 내용에서 첫 번째 이미지 URL 추출
+     * @param content HTML 내용
+     * @return 첫 이미지 URL
+     */
+    private String extractFirstImage(String content) {
+        // Jsoup 라이브러리를 사용하여 HTML 파싱
+        Document document = Jsoup.parse(content);
+
+        // 첫 번째 이미지 태그 추출
+        Element firstImage = document.selectFirst("img");
+
+        // 이미지 태그가 존재하면 src 속성값 반환
+        return (firstImage != null) ? firstImage.attr("src") : null;
+    }
+
+    /**
+     * HTML 내용에서 처음 100자 추출
+     * @param content HTML 내용
+     * @return contentSnippet 내용 일부
+     */
+    private String extractContentSnippet(String content) {
+        // HTML 파싱
+        Document document = Jsoup.parse(content);
+
+        // 이미지와 비디오 태그 제거
+        document.select("img, video").remove();
+
+        // 태그 제거 후 내용 추출
+        String text = document.text().trim();
+
+        // 50자 이상이면 50자까지만 반환
+        return text.length() > 50 ? text.substring(0, 50).trim() + "..." : text;
     }
 }
