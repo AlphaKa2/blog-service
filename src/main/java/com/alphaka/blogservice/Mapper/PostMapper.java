@@ -14,11 +14,17 @@ public interface PostMapper {
 
     // Post -> PostResponse 매핑
     @Mappings({
-            @Mapping(source = "blog.id", target = "blogId"),           // Blog ID 매핑
-            @Mapping(source = "blog.nickname", target = "nickname"),   // Blog의 닉네임 매핑
-            @Mapping(source = "userId", target = "userId"),            // 작성자 ID 매핑
-            @Mapping(source = "createdAt", target = "createdAt", dateFormat = "yyyy-MM-dd HH:mm:ss"),  // 작성일시 포맷팅
-            @Mapping(source = "updatedAt", target = "updatedAt", dateFormat = "yyyy-MM-dd HH:mm:ss")   // 수정일시 포맷팅
+            @Mapping(source = "post.id", target = "postId"),
+            @Mapping(source = "post.blog.id", target = "blogId"),
+            @Mapping(source = "nickname", target = "nickname"),
+            @Mapping(source = "post.title", target = "title"),
+            @Mapping(source = "post.content", target = "content"),
+            @Mapping(source = "post.public", target = "isPublic"),
+            @Mapping(source = "post.commentable", target = "isCommentable"),
+            @Mapping(source = "post.viewCount", target = "viewCount"),
+            @Mapping(source = "post.createdAt", target = "createdAt", dateFormat = "yyyy-MM-dd HH:mm:ss"),
+            @Mapping(source = "post.updatedAt", target = "updatedAt", dateFormat = "yyyy-MM-dd HH:mm:ss"),
+            @Mapping(target = "tags", expression = "java(post.getPostTags().stream().map(postTag -> postTag.getTag().getTagName()).collect(java.util.stream.Collectors.toList()))") // 태그 목록 매핑
     })
-    PostResponse toResponse(Post post);
+    PostResponse toResponse(Post post, String nickname);
 }
