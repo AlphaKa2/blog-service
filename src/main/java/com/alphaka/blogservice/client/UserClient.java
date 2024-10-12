@@ -16,4 +16,8 @@ public interface UserClient {
     @GetMapping("/api/users/exist/{userId}")
     @ResponseStatus(HttpStatus.OK)
     boolean isUserExists(@PathVariable("userId") Long userId);
+
+    // 사용자 닉네임으로 사용자 ID 조회
+    @GetMapping("/api/users/nickname/{nickname}")
+    Long findUserIdByNickname(@PathVariable("nickname") String nickname);
 }
