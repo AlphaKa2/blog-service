@@ -53,6 +53,11 @@ public class Comment extends DeletableBaseEntity {
         this.isPublic = isPublic;
     }
 
+    // 댓글 수정
+    public void updateComment(String content) {
+        this.content = content;
+    }
+
     // 댓글 삭제 시 연관된 자식 댓글들도 삭제(soft delete)
     @PreRemove
     public void preRemove() {
