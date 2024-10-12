@@ -41,6 +41,8 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     // AWS S3
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+    // JSOUP (HTML 파싱)
+    implementation 'org.jsoup:jsoup:1.15.3'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.mysql:mysql-connector-j'
