@@ -1,8 +1,10 @@
 package com.alphaka.blogservice.service;
 
 import com.alphaka.blogservice.dto.request.CommentCreateRequest;
+import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
 import com.alphaka.blogservice.entity.Comment;
 import com.alphaka.blogservice.entity.Post;
+import com.alphaka.blogservice.exception.custom.CommentNotFoundException;
 import com.alphaka.blogservice.exception.custom.ParentCommentNotFoundException;
 import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
@@ -56,7 +58,28 @@ public class CommentService {
         log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
     }
 
-    // 댓글 수정
+    /**
+     * 댓글 수정
+     */
+    @Transactional
+    public void updateComment(HttpServletRequest httpRequest, CommentUpdateRequest request) {
+        log.info("댓글 수정 요청 - Comment ID: {}", request.getCommentId());
+
+        Long userId = getAuthenticatedUserId(httpRequest);
+
+        // 댓글 존재 여부 확인
+        Comment comment = commentRepository.findById(request.getCommentId()).orElseThrow(CommentNotFoundException::new);
+
+        // 작성자 확인
+        if (!comment.getUserId().equals(userId)) {
+            log.error("댓글 작성자가 아닙니다.");
+            throw new UnauthorizedException();
+        }
+
+        // 댓글 수정
+        comment.updateComment(request.getContent());
+        log.info("댓글 수정 완료 - Comment ID: {}", comment.getId());
+    }
 
     // 댓글 삭제
 
