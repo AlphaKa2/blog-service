@@ -60,28 +60,38 @@ public class CommentService {
 
     /**
      * 댓글 수정
+     * @param httpRequest HttpServletRequest
+     * @param request 댓글 수정 요청
      */
     @Transactional
-    public void updateComment(HttpServletRequest httpRequest, CommentUpdateRequest request) {
-        log.info("댓글 수정 요청 - Comment ID: {}", request.getCommentId());
+    public void updateComment(HttpServletRequest httpRequest, Long commentId, CommentUpdateRequest request) {
+        log.info("댓글 수정 요청 - Comment ID: {}", commentId);
 
         Long userId = getAuthenticatedUserId(httpRequest);
-
-        // 댓글 존재 여부 확인
-        Comment comment = commentRepository.findById(request.getCommentId()).orElseThrow(CommentNotFoundException::new);
-
-        // 작성자 확인
-        if (!comment.getUserId().equals(userId)) {
-            log.error("댓글 작성자가 아닙니다.");
-            throw new UnauthorizedException();
-        }
+        Comment comment = validatePostOwnership(commentId, userId);
 
         // 댓글 수정
-        comment.updateComment(request.getContent());
+        comment.updateComment(request.getContent(), request.isPublic());
+        commentRepository.save(comment);
         log.info("댓글 수정 완료 - Comment ID: {}", comment.getId());
     }
 
-    // 댓글 삭제
+    /**
+     * 댓글 삭제
+     * @param httpRequest HttpServletRequest
+     * @param commentId   댓글 ID
+     */
+    @Transactional
+    public void deleteComment(HttpServletRequest httpRequest, Long commentId) {
+        log.info("댓글 삭제 요청 - Comment ID: {}", commentId);
+
+        Long userId = getAuthenticatedUserId(httpRequest);
+        Comment comment = validatePostOwnership(commentId, userId);
+
+        // 댓글 삭제
+        commentRepository.delete(comment);
+        log.info("댓글 삭제 완료 - Comment ID: {}", commentId);
+    }
 
     /**
      * 현재 인증된 사용자 ID를 추출하고 확인
@@ -105,5 +115,22 @@ public class CommentService {
             log.error("헤더의 사용자 ID가 유효하지 않습니다: {}", userIdHeader);
             throw new UnauthorizedException();
         }
+    }
+
+    /**
+     * 댓글 작성자인지 확인
+     * @param commentId 댓글 ID
+     * @param userId 사용자 ID
+     * @return Comment 객체
+     */
+    private Comment validatePostOwnership(Long commentId, Long userId) {
+        Comment comment = commentRepository.findById(commentId).orElseThrow(CommentNotFoundException::new);
+
+        if (!comment.getUserId().equals(userId)) {
+            log.error("댓글 작성자가 아닙니다 - Post ID: {}, User ID: {}", comment.getId(), userId);
+            throw new UnauthorizedException();
+        }
+
+        return comment;
     }
 }
