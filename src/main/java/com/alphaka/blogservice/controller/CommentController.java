@@ -3,11 +3,14 @@ package com.alphaka.blogservice.controller;
 import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.dto.request.CommentCreateRequest;
 import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
+import com.alphaka.blogservice.dto.response.CommentDetailResponse;
 import com.alphaka.blogservice.dto.response.CommentResponse;
 import com.alphaka.blogservice.service.CommentService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/comments")
@@ -45,5 +48,14 @@ public class CommentController {
                                            @PathVariable("commentId") Long commentId) {
         commentService.deleteComment(httpRequest, commentId);
         return new ApiResponse<>(null);
+    }
+
+    /**
+     * 특정 게시글의 댓글 조회
+     */
+    @GetMapping("/post/{postId}")
+    public ApiResponse<List<CommentDetailResponse>> getCommentsForPost(@PathVariable("postId") Long postId) {
+        List<CommentDetailResponse> response = commentService.getCommentsForPost(postId);
+        return new ApiResponse<>(response);
     }
 }
