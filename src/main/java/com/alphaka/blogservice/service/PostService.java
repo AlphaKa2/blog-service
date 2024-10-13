@@ -6,6 +6,7 @@ import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.request.PostUpdateRequest;
 import com.alphaka.blogservice.dto.request.UserProfile;
 import com.alphaka.blogservice.dto.response.BlogPostListResponse;
+import com.alphaka.blogservice.dto.response.PostDetailResponse;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.entity.Blog;
 import com.alphaka.blogservice.entity.Post;
@@ -22,12 +23,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,6 +47,7 @@ public class PostService {
     private final BlogRepository blogRepository;
     private final PostRepository postRepository;
     private final PostMapper postMapper = PostMapper.INSTANCE;
+    private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * 특정 블로그의 게시글 목록 조회
@@ -92,6 +97,43 @@ public class PostService {
 
         log.info("블로그의 게시글 리스트 조회 완료 - Nickname: {}", nickname);
         return responsePage;
+    }
+
+    /**
+     * 특정 게시글 상세 조회
+     * @param postId 게시글 ID
+     * @param httpRequest HTTP 요청
+     * @return PostDetailResponse 게시글 상세 정보
+     */
+    public PostDetailResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
+        log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
+
+        // 게시글 조회
+        Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
+        String nickname = userClient.findNicknameByUserId(post.getUserId());
+
+        // 태그 목록 추출
+        List<String> tagNames = post.getPostTags().stream()
+                .map(postTag -> postTag.getTag().getTagName())
+                .toList();
+
+        // 응답 객체 매핑
+        PostDetailResponse response = postMapper.toResponse(post, nickname, tagNames);
+        response.setTags(tagNames);
+
+        // 조회수 증가
+        String ipAddress = getClientIp(httpRequest);
+        String redisKey = "post:viewCount:" + postId + ":" + ipAddress; // Redis 키 구성
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+
+        // Redis에 조회수 증가 여부 확인
+        Boolean isNewView = ops.setIfAbsent(redisKey, "1", 1, TimeUnit.DAYS);
+        if (Boolean.TRUE.equals(isNewView)) {
+            postRepository.increaseViewCount(postId);  // 조회수 증가
+        }
+
+        log.info("게시글 상세 조회 완료 - Post ID: {}", postId);
+        return response;
     }
 
     /**
@@ -277,5 +319,15 @@ public class PostService {
 
         // 50자 이상이면 50자까지만 반환
         return text.length() > 50 ? text.substring(0, 50).trim() + "..." : text;
+    }
+
+    /**
+     * 클라이언트 IP 주소 추출
+     * @param request HTTP 요청
+     * @return IP 주소
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        return (xForwardedFor != null) ? xForwardedFor.split(",")[0] : request.getRemoteAddr();
     }
 }
