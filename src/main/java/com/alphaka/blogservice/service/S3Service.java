@@ -60,6 +60,7 @@ public class S3Service {
 
     // 공통 파일 업로드 메서드 (upload 폴더에 저장)
     private String uploadFile(MultipartFile file, String prefix, String fileType) {
+        this.validateFileSize(file, fileType);
         this.validateFileExtension(file, fileType);
         try {
             return this.uploadFileToS3(file, prefix, fileType);
@@ -93,6 +94,25 @@ public class S3Service {
         if (!allowedExtensionList.contains(extension)) {
             log.error("지원하지 않는 파일 확장자입니다. [{}]", extension);
             throw new S3Exception(ErrorCode.S3_FILE_EXTENSION_INVALID);
+        }
+    }
+
+    // 파일 크기 검증 (이미지 최대 10MB, 비디오 최대 100MB)
+    private void validateFileSize(MultipartFile file, String fileType) {
+        long maxSize;
+
+        if ("image".equals(fileType)) {
+            maxSize = 10 * 1024 * 1024;  // 10MB
+        } else if ("video".equals(fileType)) {
+            maxSize = 100 * 1024 * 1024;  // 100MB
+        } else {
+            log.error("지원되지 않는 파일 유형입니다.");
+            throw new S3Exception(ErrorCode.S3_FILE_EXTENSION_INVALID);
+        }
+
+        if (file.getSize() > maxSize) {
+            log.error("파일 크기가 너무 큽니다. [{} bytes, 허용된 최대 크기: {} bytes]", file.getSize(), maxSize);
+            throw new S3Exception(ErrorCode.S3_FILE_SIZE_EXCEEDED);  // 커스텀 예외 처리
         }
     }
 
