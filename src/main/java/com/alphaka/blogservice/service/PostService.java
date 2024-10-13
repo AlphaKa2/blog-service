@@ -20,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,8 +49,8 @@ public class PostService {
      * @param nickname 블로그 닉네임
      * @return List<BlogPostListResponse> 게시글 정보 목록
      */
-    public List<BlogPostListResponse> getBlogPostList(String nickname) {
-        log.info("블로그 게시글 목록 조회 요청 - Nickname: {}", nickname);
+    public Page<BlogPostListResponse> getBlogPostList(String nickname, Pageable pageable) {
+        log.info("블로그 게시글 목록 조회 요청 - Nickname: {}, Page: {}", nickname, pageable.getPageNumber());
 
         // 닉네임을 통해 사용자 ID 조회
         Long userId = userClient.findUserIdByNickname(nickname);
@@ -57,11 +59,10 @@ public class PostService {
         Blog blog = blogRepository.findById(userId).orElseThrow(BlogNotFoundException::new);
 
         // JPQL 쿼리를 통해 게시글별 좋아요 수와 댓글 수를 조회
-        List<Object[]> postLikeCommentCounts = postRepository.findPostLikeAndCommentCountsByBlogId(blog.getId());
+        Page<Object[]> postLikeCommentCounts = postRepository.findPostLikeAndCommentCountsByBlogId(blog.getId(), pageable);
 
         // 결과를 DTO로 변환하여 처리
-        List<BlogPostListResponse> postList = postLikeCommentCounts.stream()
-                .map(result -> {
+        Page<BlogPostListResponse> responsePage = postLikeCommentCounts.map(result -> {
                     Long postId = (Long) result[0];
                     Long likeCount = (Long) result[1];
                     Long commentCount = (Long) result[2];
@@ -87,12 +88,10 @@ public class PostService {
                             .tags(tagNames)
                             .createdAt(post.getCreatedAt().toString())
                             .build();
-                })
-                .collect(Collectors.toList());
-
+                });
 
         log.info("블로그의 게시글 리스트 조회 완료 - Nickname: {}", nickname);
-        return postList;
+        return responsePage;
     }
 
     /**

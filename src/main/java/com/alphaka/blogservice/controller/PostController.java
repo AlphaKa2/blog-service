@@ -8,9 +8,9 @@ import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -54,8 +54,11 @@ public class PostController {
      * 특정 블로그의 게시글 목록 조회
      */
     @GetMapping("/blog/{nickname}")
-    public ApiResponse<List<BlogPostListResponse>> getBlogPostList(@PathVariable("nickname") String nickname) {
-        List<BlogPostListResponse> response = postService.getBlogPostList(nickname);
+    public ApiResponse<Page<BlogPostListResponse>> getBlogPostList(@PathVariable("nickname") String nickname,
+                                                                   @RequestParam(value = "page", defaultValue = "1") int page,
+                                                                  @RequestParam(value = "size", defaultValue = "5") int size) {
+        Pageable pageable = Pageable.ofSize(size).withPage(page - 1);
+        Page<BlogPostListResponse> response = postService.getBlogPostList(nickname, pageable);
         return new ApiResponse<>(response);
     }
 }
