@@ -24,4 +24,8 @@ public interface UserClient {
     // 사용자 ID로 사용자 닉네임 조회
     @GetMapping("/api/users/{userId}/nickname")
     String findNicknameByUserId(@PathVariable("userId") Long userId);
+
+    // 사용자 ID로 프로필 이미지 조회
+    @GetMapping("/api/users/{userId}/profile-image")
+    String findProfileImageByUserId(@PathVariable("userId") Long userId);
 }
