@@ -20,4 +20,8 @@ public interface UserClient {
     // 사용자 닉네임으로 사용자 ID 조회
     @GetMapping("/api/users/nickname/{nickname}")
     Long findUserIdByNickname(@PathVariable("nickname") String nickname);
+
+    // 사용자 ID로 사용자 닉네임 조회
+    @GetMapping("/api/users/{userId}/nickname")
+    String findNicknameByUserId(@PathVariable("userId") Long userId);
 }
