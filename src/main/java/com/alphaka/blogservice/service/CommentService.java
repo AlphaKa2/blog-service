@@ -1,11 +1,9 @@
 package com.alphaka.blogservice.service;
 
-import com.alphaka.blogservice.Mapper.CommentMapper;
 import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.CommentCreateRequest;
 import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
 import com.alphaka.blogservice.dto.request.UserProfile;
-import com.alphaka.blogservice.dto.response.CommentDetailResponse;
 import com.alphaka.blogservice.dto.response.CommentResponse;
 import com.alphaka.blogservice.entity.Comment;
 import com.alphaka.blogservice.entity.Post;
@@ -34,7 +32,6 @@ public class CommentService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final UserProfileService userProfileService;
-    private final CommentMapper commentMapper = CommentMapper.INSTANCE;
 
     /**
      * 특정 게시글의 댓글 조회
