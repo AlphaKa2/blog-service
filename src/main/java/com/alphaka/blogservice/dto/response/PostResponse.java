@@ -1,32 +1,33 @@
 package com.alphaka.blogservice.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Setter
 public class PostResponse {
 
     private Long postId;
-    private Long blogId;
-    private String nickname;
+    private String author;
     private String title;
     private String content;
-    private boolean isPublic;
-    private boolean isCommentable;
-    private int viewCount;
     private List<String> tags;
+    private int likeCount;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    private String createdAt;
+    private LocalDateTime createdAt;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
-    private String updatedAt;
+    @Builder
+    public PostResponse(Long postId, String author, String title, String content, List<String> tags, int likeCount, LocalDateTime createdAt) {
+        this.postId = postId;
+        this.author = author;
+        this.title = title;
+        this.content = content;
+        this.tags = tags;
+        this.likeCount = likeCount;
+        this.createdAt = createdAt;
+    }
 }

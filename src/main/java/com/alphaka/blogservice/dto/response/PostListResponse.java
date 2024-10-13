@@ -9,7 +9,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class BlogPostListResponse {
+public class PostListResponse {
     private Long postId;
     private String title;
     private String contentSnippet;
@@ -22,7 +22,7 @@ public class BlogPostListResponse {
     private String createdAt;
 
     @Builder
-    public BlogPostListResponse(Long postId, String title, String contentSnippet, String representativeImage, int likeCount, int commentCount, List<String> tags, String createdAt) {
+    public PostListResponse(Long postId, String title, String contentSnippet, String representativeImage, int likeCount, int commentCount, List<String> tags, String createdAt) {
         this.postId = postId;
         this.title = title;
         this.contentSnippet = contentSnippet;

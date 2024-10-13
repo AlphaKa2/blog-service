@@ -5,8 +5,8 @@ import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.request.PostUpdateRequest;
 import com.alphaka.blogservice.dto.request.UserProfile;
-import com.alphaka.blogservice.dto.response.BlogPostListResponse;
-import com.alphaka.blogservice.dto.response.PostDetailResponse;
+import com.alphaka.blogservice.dto.response.PostListResponse;
+import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.entity.Blog;
 import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
@@ -51,9 +51,9 @@ public class PostService {
     /**
      * 특정 블로그의 게시글 목록 조회
      * @param nickname 블로그 닉네임
-     * @return List<BlogPostListResponse> 게시글 정보 목록
+     * @return List<PostListResponse> 게시글 정보 목록
      */
-    public Page<BlogPostListResponse> getBlogPostList(String nickname, Pageable pageable) {
+    public Page<PostListResponse> getBlogPostList(String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}, Page: {}", nickname, pageable.getPageNumber());
 
         // 닉네임을 통해 사용자 ID 조회
@@ -66,7 +66,7 @@ public class PostService {
         Page<Object[]> postLikeCommentCounts = postRepository.findPostLikeAndCommentCountsByBlogId(blog.getId(), pageable);
 
         // 결과를 DTO로 변환하여 처리
-        Page<BlogPostListResponse> responsePage = postLikeCommentCounts.map(result -> {
+        Page<PostListResponse> responsePage = postLikeCommentCounts.map(result -> {
                     Long postId = (Long) result[0];
                     Long likeCount = (Long) result[1];
                     Long commentCount = (Long) result[2];
@@ -82,7 +82,7 @@ public class PostService {
                             .map(postTag -> postTag.getTag().getTagName())
                             .collect(Collectors.toList());
 
-                    return BlogPostListResponse.builder()
+                    return PostListResponse.builder()
                             .postId(postId)
                             .title(post.getTitle())
                             .contentSnippet(extractContentSnippet(post.getContent()))
@@ -104,7 +104,7 @@ public class PostService {
      * @param httpRequest HTTP 요청
      * @return PostDetailResponse 게시글 상세 정보
      */
-    public PostDetailResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
+    public PostResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
         // 게시글 조회
@@ -117,7 +117,7 @@ public class PostService {
                 .toList();
 
         // 응답 객체 매핑
-        PostDetailResponse response = postMapper.toResponse(post, nickname, tagNames);
+        PostResponse response = postMapper.toResponse(post, nickname, tagNames);
         response.setTags(tagNames);
 
         // 조회수 증가
