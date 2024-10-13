@@ -4,6 +4,7 @@ import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.request.PostUpdateRequest;
 import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.dto.response.BlogPostListResponse;
+import com.alphaka.blogservice.dto.response.PostDetailResponse;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,12 +54,22 @@ public class PostController {
     /**
      * 특정 블로그의 게시글 목록 조회
      */
-    @GetMapping("/blog/{nickname}")
+    @GetMapping("/{nickname}")
     public ApiResponse<Page<BlogPostListResponse>> getBlogPostList(@PathVariable("nickname") String nickname,
                                                                    @RequestParam(value = "page", defaultValue = "1") int page,
                                                                   @RequestParam(value = "size", defaultValue = "5") int size) {
         Pageable pageable = Pageable.ofSize(size).withPage(page - 1);
         Page<BlogPostListResponse> response = postService.getBlogPostList(nickname, pageable);
+        return new ApiResponse<>(response);
+    }
+
+    /**
+     * 게시글 상세 조회
+     */
+    @GetMapping("/{postId}")
+    public ApiResponse<PostDetailResponse> getPostDetail(HttpServletRequest httpRequest,
+                                                         @PathVariable Long postId) {
+        PostDetailResponse response = postService.getPostDetails(httpRequest, postId);
         return new ApiResponse<>(response);
     }
 }
