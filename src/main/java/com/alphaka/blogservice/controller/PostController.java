@@ -23,10 +23,10 @@ public class PostController {
     /**
      * 게시글 작성
      */
-    @PostMapping()
-    public ApiResponse<PostResponse> createPost(HttpServletRequest httpRequest,
+    @PostMapping
+    public ApiResponse<Long> createPost(HttpServletRequest httpRequest,
                                                 @RequestBody PostCreateRequest request) {
-        PostResponse response = postService.createPost(httpRequest, request);
+        Long response = postService.createPost(httpRequest, request);
         return new ApiResponse<>(response);
     }
 
@@ -34,10 +34,10 @@ public class PostController {
      * 게시글 수정
      */
     @PutMapping("/{postId}")
-    public ApiResponse<PostResponse> updatePost(HttpServletRequest httpRequest,
+    public ApiResponse<Long> updatePost(HttpServletRequest httpRequest,
                                                 @PathVariable Long postId,
                                                 @RequestBody PostUpdateRequest request) {
-        PostResponse response = postService.updatePost(httpRequest, postId, request);
+        Long response = postService.updatePost(httpRequest, postId, request);
         return new ApiResponse<>(response);
     }
 

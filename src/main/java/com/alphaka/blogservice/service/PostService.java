@@ -7,7 +7,6 @@ import com.alphaka.blogservice.dto.request.PostUpdateRequest;
 import com.alphaka.blogservice.dto.request.UserProfile;
 import com.alphaka.blogservice.dto.response.BlogPostListResponse;
 import com.alphaka.blogservice.dto.response.PostDetailResponse;
-import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.entity.Blog;
 import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
@@ -140,10 +139,10 @@ public class PostService {
      * 게시글 작성
      * @param httpRequest HTTP 요청
      * @param request 작성할 게시글 정보
-     * @return PostResponse 작성한 게시글 정보
+     * @return Long 작성한 게시글 번호
      */
     @Transactional
-    public PostResponse createPost(HttpServletRequest httpRequest, PostCreateRequest request) {
+    public Long createPost(HttpServletRequest httpRequest, PostCreateRequest request) {
         log.info("게시글 작성 요청 - Nickname: {}, Title: {}", request.getNickname(), request.getTitle());
 
         // 현재 사용자 정보 추출
@@ -164,13 +163,12 @@ public class PostService {
                 .isCommentable(request.isCommentable())
                 .build();
 
-        postRepository.save(post);
-        log.info("게시글 작성 완료 - Post ID: {}", post.getId());
-
         // 태그 처리
         tagService.updateTagsForPost(post, request.getTagNames());
+        postRepository.save(post);
 
-        return postMapper.toResponse(post, userProfile.getNickname());
+        log.info("게시글 작성 완료 - Post ID: {}", post.getId());
+        return post.getId();
     }
 
     /**
@@ -178,10 +176,10 @@ public class PostService {
      * @param httpRequest HTTP 요청
      * @param postId 게시글 ID
      * @param request 게시글 수정 정보
-     * @return PostResponse 수정한 게시글 정보
+     * @return Long 수정한 게시글 번호
      */
     @Transactional
-    public PostResponse updatePost(HttpServletRequest httpRequest, Long postId, PostUpdateRequest request) {
+    public Long updatePost(HttpServletRequest httpRequest, Long postId, PostUpdateRequest request) {
         log.info("게시글 수정 요청 - Post ID: {}", postId);
 
         // 현재 사용자 정보 추출
@@ -196,12 +194,11 @@ public class PostService {
         post.updatePost(request.getTitle(), processedContent, request.isPublic(), request.isCommentable());
 
         postRepository.save(post);
-        log.info("게시글 수정 완료 - Post ID: {}", post.getId());
-
         // 태그 업데이트
         tagService.updateTagsForPost(post, request.getTagNames());
 
-        return postMapper.toResponse(post, userProfile.getNickname());
+        log.info("게시글 수정 완료 - Post ID: {}", post.getId());
+        return post.getId();
     }
 
     /**
