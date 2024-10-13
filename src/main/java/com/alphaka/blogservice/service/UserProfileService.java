@@ -21,16 +21,18 @@ public class UserProfileService {
 
         String userIdHeader = request.getHeader("X-USER-ID");
         String userNicknameHeader = request.getHeader("X-USER-NICKNAME");
+        String userProfileImageHeader = request.getHeader("X-USER-PROFILE-IMAGE");
 
-        if (userIdHeader == null || userNicknameHeader == null) {
+        if (userIdHeader == null || userNicknameHeader == null || userProfileImageHeader == null) {
             log.error("헤더에서 사용자 정보를 찾을 수 없습니다.");
             throw new UserNotFoundException();
         }
 
         try {
             Long userId = Long.parseLong(userIdHeader);
-            log.info("사용자 정보 추출 완료 - ID: {}, Nickname: {}", userId, userNicknameHeader);
-            return new UserProfile(userId, userNicknameHeader);
+            log.info("사용자 정보 추출 완료 - ID: {}, Nickname: {}, ProfileImage: {}",
+                    userId, userNicknameHeader, userProfileImageHeader);
+            return new UserProfile(userId, userNicknameHeader, userProfileImageHeader);
         } catch (NumberFormatException e) {
             log.error("유효하지 않은 사용자 ID: {}", userIdHeader);
             throw new UnauthorizedException();

@@ -1,8 +1,13 @@
 package com.alphaka.blogservice.service;
 
+import com.alphaka.blogservice.client.UserClient;
+import com.alphaka.blogservice.dto.response.BlogTagListResponse;
+import com.alphaka.blogservice.entity.Blog;
 import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.entity.PostTag;
 import com.alphaka.blogservice.entity.Tag;
+import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
+import com.alphaka.blogservice.repository.BlogRepository;
 import com.alphaka.blogservice.repository.PostTagRepository;
 import com.alphaka.blogservice.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +24,40 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TagService {
 
+    private final UserClient userClient;
     private final TagRepository tagRepository;
     private final PostTagRepository postTagRepository;
+    private final BlogRepository blogRepository;
+
+    /**
+     * 블로그에 등록된 태그 목록 조회
+     * @param nickname 블로그 주인의 닉네임
+     * @return 태그 목록과 목록별 게시글 수
+     */
+    public List<BlogTagListResponse> getTagListForBlog(String nickname) {
+        log.info("블로그의 태그 목록 조회 시작 - Nickname: {}", nickname);
+
+        // 요청 받은 닉네임의 사용자 ID 조회
+        Long userId = userClient.findUserIdByNickname(nickname);
+
+        // 해당 사용자의 블로그 조회
+        Blog blog = blogRepository.findById(userId).orElseThrow(BlogNotFoundException::new);
+
+        // 해당 블로그에 등록된 태그 목록 조회
+        List<Tag> tags = postTagRepository.findTagsByBlogId(blog.getId());
+
+        // 태그별 게시글 수 계산하여 태그 목록과 함께 반환 (해당 블로그의 게시글로 한정)
+        List<BlogTagListResponse> tagList = tags.stream()
+                .map(tag -> {
+                    // 특정 블로그에서 해당 태그가 달린 게시글 수 계산
+                    int postCount = postTagRepository.countByBlogIdAndTagId(blog.getId(), tag.getId());
+                    return new BlogTagListResponse(tag.getTagName(), postCount);
+                })
+                .toList();
+
+        log.info("블로그의 태그 목록 조회 완료 - Nickname: {}", nickname);
+        return tagList;
+    }
 
     /**
      * 게시글의 태그 정보를 업데이트

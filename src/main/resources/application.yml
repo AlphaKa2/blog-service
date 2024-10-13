@@ -9,6 +9,12 @@ spring:
     username: username
     password: password
 
+  #redis
+  data:
+    redis:
+      host: host
+      port: 0000
+
   #jpa
   jpa:
     show-sql: 'true'

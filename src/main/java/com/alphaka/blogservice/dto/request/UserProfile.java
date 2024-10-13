@@ -10,4 +10,5 @@ import lombok.Setter;
 public class UserProfile {
     private Long userId;
     private String nickname;
+    private String profileImage;
 }
