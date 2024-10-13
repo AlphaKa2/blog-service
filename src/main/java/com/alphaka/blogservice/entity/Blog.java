@@ -13,7 +13,7 @@ import java.util.List;
 @Getter
 @Table(name = "blogs")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Blog extends DeletableBaseEntity {
+public class Blog extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,14 +28,5 @@ public class Blog extends DeletableBaseEntity {
     @Builder
     public Blog(Long userId) {
         this.userId = userId;
-    }
-
-    // 블로그 삭제 시 연관된 포스트들도 삭제(soft delete)
-    @PreRemove
-    public void preRemove() {
-        this.softDelete();
-        for (Post post : posts) {
-            post.softDelete();
-        }
     }
 }
