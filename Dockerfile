@@ -4,8 +4,8 @@ FROM gradle:8.0-jdk17 AS build
 # 작업 디렉토리 설정
 WORKDIR /home/gradle/project
 
-# 권한 문제 해결을 위한 디렉토리 접근 권한 설정
-RUN chmod -R 777 /home/gradle/project
+# 소스 코드를 컨테이너로 복사
+COPY --chown=gradle:gradle . .
 
 # 프로젝트 빌드
 RUN gradle build --no-daemon
