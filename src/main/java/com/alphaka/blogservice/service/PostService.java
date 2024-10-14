@@ -4,6 +4,7 @@ import com.alphaka.blogservice.Mapper.PostMapper;
 import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.request.PostUpdateRequest;
+import com.alphaka.blogservice.dto.request.UserInfo;
 import com.alphaka.blogservice.dto.request.UserProfile;
 import com.alphaka.blogservice.dto.response.PostListResponse;
 import com.alphaka.blogservice.dto.response.PostResponse;
@@ -57,10 +58,10 @@ public class PostService {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}, Page: {}", nickname, pageable.getPageNumber());
 
         // 닉네임을 통해 사용자 ID 조회
-        Long userId = userClient.findUserIdByNickname(nickname);
+        UserInfo user = userClient.findUser(nickname).getData();
 
         // 블로그 조회
-        Blog blog = blogRepository.findById(userId).orElseThrow(BlogNotFoundException::new);
+        Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
 
         // JPQL 쿼리를 통해 게시글별 좋아요 수와 댓글 수를 조회
         Page<Object[]> postLikeCommentCounts = postRepository.findPostLikeAndCommentCountsByBlogId(blog.getId(), pageable);
@@ -109,7 +110,7 @@ public class PostService {
 
         // 게시글 조회
         Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
-        String nickname = userClient.findNicknameByUserId(post.getUserId());
+        UserInfo user = userClient.findUser(post.getUserId()).getData();
 
         // 태그 목록 추출
         List<String> tagNames = post.getPostTags().stream()
@@ -117,7 +118,7 @@ public class PostService {
                 .toList();
 
         // 응답 객체 매핑
-        PostResponse response = postMapper.toResponse(post, nickname, tagNames);
+        PostResponse response = postMapper.toResponse(post, user.getNickname(), tagNames);
         response.setTags(tagNames);
 
         // 조회수 증가
@@ -163,9 +164,10 @@ public class PostService {
                 .isCommentable(request.isCommentable())
                 .build();
 
+        postRepository.save(post);
+
         // 태그 처리
         tagService.updateTagsForPost(post, request.getTagNames());
-        postRepository.save(post);
 
         log.info("게시글 작성 완료 - Post ID: {}", post.getId());
         return post.getId();

@@ -1,6 +1,7 @@
 package com.alphaka.blogservice.service;
 
 import com.alphaka.blogservice.client.UserClient;
+import com.alphaka.blogservice.dto.request.UserInfo;
 import com.alphaka.blogservice.dto.response.BlogTagListResponse;
 import com.alphaka.blogservice.entity.Blog;
 import com.alphaka.blogservice.entity.Post;
@@ -38,10 +39,10 @@ public class TagService {
         log.info("블로그의 태그 목록 조회 시작 - Nickname: {}", nickname);
 
         // 요청 받은 닉네임의 사용자 ID 조회
-        Long userId = userClient.findUserIdByNickname(nickname);
+        UserInfo user = userClient.findUser(nickname).getData();
 
         // 해당 사용자의 블로그 조회
-        Blog blog = blogRepository.findById(userId).orElseThrow(BlogNotFoundException::new);
+        Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
 
         // 해당 블로그에 등록된 태그 목록 조회
         List<Tag> tags = postTagRepository.findTagsByBlogId(blog.getId());
