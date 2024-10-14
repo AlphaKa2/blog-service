@@ -1,5 +1,7 @@
+/*
 package com.alphaka.blogservice.config;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -13,11 +15,14 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import java.util.HashMap;
 import java.util.Map;
 
+*/
 /**
  * Kafka Topic으로부터 메시지를 수신하기 위한 Consumer 설정
- */
+ *//*
+
 @EnableKafka
 @Configuration
+@RequiredArgsConstructor
 public class KafkaConsumerConfig {
 
     @Value("${spring.kafka.consumer.bootstrap-servers}")
@@ -40,8 +45,6 @@ public class KafkaConsumerConfig {
         Map<String, Object> config = new HashMap<>();
         config.put("ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG", bootstrapServers);
         config.put("ConsumerConfig.GROUP_ID_CONFIG", groupId);
-        config.put("ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG", keyDeserializer);
-        config.put("ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG", valueDeserializer);
         config.put("spring.json.trusted.packages", trustedPackages);
 
         return new DefaultKafkaConsumerFactory<>(config, new StringDeserializer(), new JsonDeserializer<>(Object.class));
@@ -54,3 +57,4 @@ public class KafkaConsumerConfig {
         return factory;
     }
 }
+*/
