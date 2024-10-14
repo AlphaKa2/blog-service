@@ -68,15 +68,4 @@ public class Post extends DeletableBaseEntity {
         this.isPublic = isPublic;
         this.isCommentable = isCommentable;
     }
-
-    // 포스트 삭제 시 연관된 댓글들도 삭제(soft delete)
-    @PreRemove
-    public void preRemove() {
-        this.softDelete();
-        for (Comment comment : comments) {
-            comment.softDelete();
-        }
-        postTags.clear(); // 게시글 태그 물리적 삭제
-        likes.clear(); // 좋아요 물리적 삭제
-    }
 }

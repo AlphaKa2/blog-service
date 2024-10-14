@@ -2,6 +2,7 @@ package com.alphaka.blogservice.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -32,4 +33,11 @@ public class Like {
     @CreationTimestamp
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Builder
+    public Like(Long userId, Post post, Comment comment) {
+        this.userId = userId;
+        this.post = post;
+        this.comment = comment;
+    }
 }

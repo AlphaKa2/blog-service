@@ -9,6 +9,12 @@ spring:
     username: username
     password: password
 
+  #redis
+  data:
+    redis:
+      host: host
+      port: 6379
+
   #jpa
   jpa:
     show-sql: 'true'
@@ -47,3 +53,11 @@ cloud:
     credentials:
       access-key: access-key
       secret-key: secret-key
+
+# eureka
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: url

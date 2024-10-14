@@ -58,14 +58,4 @@ public class Comment extends DeletableBaseEntity {
         this.content = content;
         this.isPublic = isPublic;
     }
-
-    // 댓글 삭제 시 연관된 자식 댓글들도 삭제(soft delete)
-    @PreRemove
-    public void preRemove() {
-        this.softDelete();
-        for (Comment child : children) {
-            child.softDelete();
-        }
-        likes.clear(); // 좋아요 물리적 삭제
-    }
 }

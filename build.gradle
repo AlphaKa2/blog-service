@@ -31,6 +31,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // eureka client
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'
     // 쿼리 파라미터를 로그로 남기는 외부 라이브러리
@@ -41,6 +45,8 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     // AWS S3
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+    // JSOUP (HTML 파싱)
+    implementation 'org.jsoup:jsoup:1.15.3'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.mysql:mysql-connector-j'
@@ -48,6 +54,8 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.4.2.Final'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.projectlombok:lombok'
 }
 
 dependencyManagement {
