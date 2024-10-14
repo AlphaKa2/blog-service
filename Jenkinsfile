@@ -22,11 +22,11 @@ pipeline {
                 sh './gradlew dependencies'
             }
         }
-        stage('Replace Prod Properties') {
+        stage('Replace Secret Properties') {
             steps {
-                withCredentials([file(credentialsId: 'blog-secret', variable: 'blog-secret')]) {
+                withCredentials([file(credentialsId: 'blogSecret', variable: 'blogSecret')]) {
                     script {
-                        sh 'cp $blog-secret ./src/main/resources/application-secret.yml'
+                        sh 'cp $blogSecret ./src/main/resources/application-secret.yml'
                     }
                 }
             }
