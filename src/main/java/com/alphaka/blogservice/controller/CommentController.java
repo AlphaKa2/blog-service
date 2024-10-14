@@ -1,9 +1,8 @@
 package com.alphaka.blogservice.controller;
 
-import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.dto.request.CommentCreateRequest;
 import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
-import com.alphaka.blogservice.dto.response.CommentDetailResponse;
+import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.dto.response.CommentResponse;
 import com.alphaka.blogservice.service.CommentService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,9 +22,9 @@ public class CommentController {
      * 댓글 작성
      */
     @PostMapping
-    public ApiResponse<CommentResponse> createComment(HttpServletRequest httpRequest,
+    public ApiResponse<Long> createComment(HttpServletRequest httpRequest,
                                                       @RequestBody CommentCreateRequest request) {
-        CommentResponse response = commentService.createComment(httpRequest, request);
+        Long response = commentService.createComment(httpRequest, request);
         return new ApiResponse<>(response);
     }
 
@@ -33,10 +32,10 @@ public class CommentController {
      * 댓글 수정
      */
     @PutMapping("/{commentId}")
-    public ApiResponse<CommentResponse> updateComment(HttpServletRequest httpRequest,
+    public ApiResponse<Long> updateComment(HttpServletRequest httpRequest,
                                                       @PathVariable("commentId") Long commentId,
                                                       @RequestBody CommentUpdateRequest request) {
-        CommentResponse response = commentService.updateComment(httpRequest, commentId, request);
+        Long response = commentService.updateComment(httpRequest, commentId, request);
         return new ApiResponse<>(response);
     }
 
@@ -54,8 +53,8 @@ public class CommentController {
      * 특정 게시글의 댓글 조회
      */
     @GetMapping("/post/{postId}")
-    public ApiResponse<List<CommentDetailResponse>> getCommentsForPost(@PathVariable("postId") Long postId) {
-        List<CommentDetailResponse> response = commentService.getCommentsForPost(postId);
+    public ApiResponse<List<CommentResponse>> getCommentsForPost(@PathVariable("postId") Long postId) {
+        List<CommentResponse> response = commentService.getCommentsForPost(postId);
         return new ApiResponse<>(response);
     }
 }

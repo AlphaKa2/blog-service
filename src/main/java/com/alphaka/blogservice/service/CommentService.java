@@ -1,11 +1,9 @@
 package com.alphaka.blogservice.service;
 
-import com.alphaka.blogservice.Mapper.CommentMapper;
 import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.CommentCreateRequest;
 import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
 import com.alphaka.blogservice.dto.request.UserProfile;
-import com.alphaka.blogservice.dto.response.CommentDetailResponse;
 import com.alphaka.blogservice.dto.response.CommentResponse;
 import com.alphaka.blogservice.entity.Comment;
 import com.alphaka.blogservice.entity.Post;
@@ -34,14 +32,13 @@ public class CommentService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final UserProfileService userProfileService;
-    private final CommentMapper commentMapper = CommentMapper.INSTANCE;
 
     /**
      * 특정 게시글의 댓글 조회
      * @param postId 게시글 ID
      * @return List<CommentDetailResponse> 댓글 목록
      */
-    public List<CommentDetailResponse> getCommentsForPost(Long postId) {
+    public List<CommentResponse> getCommentsForPost(Long postId) {
         log.info("특정 게시글의 댓글 조회 - Post ID: {}", postId);
 
         // 게시글 존재 여부 확인
@@ -51,7 +48,7 @@ public class CommentService {
         List<Comment> parentComments = commentRepository.findByPostAndParentIsNull(post);
 
         // 부모 댓글을 DTO로 변환 및 자식 댓글 포함
-        List<CommentDetailResponse> response = parentComments.stream()
+        List<CommentResponse> response = parentComments.stream()
                 .filter(Comment::isPublic)  // 공개된 댓글만 필터링
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -65,19 +62,19 @@ public class CommentService {
      * @param comment 부모 댓글 엔티티
      * @return CommentDetailResponse 부모 및 자식 댓글 정보
      */
-    private CommentDetailResponse mapToResponse(Comment comment) {
+    private CommentResponse mapToResponse(Comment comment) {
         // 작성자 프로필 이미지와 닉네임을 UserClient를 통해 가져오기
         String nickname = userClient.findNicknameByUserId(comment.getUserId());
         String profileImage = userClient.findProfileImageByUserId(comment.getUserId());
 
         // 자식 댓글 재귀적으로 처리
-        List<CommentDetailResponse> children = comment.getChildren().stream()
+        List<CommentResponse> children = comment.getChildren().stream()
                 .filter(Comment::isPublic)  // 공개된 자식 댓글만 필터링
                 .map(this::mapToResponse)   // 자식 댓글을 재귀적으로 처리
                 .collect(Collectors.toList());
 
         // 부모 댓글 정보와 자식 댓글 리스트를 포함한 DTO 생성
-        return CommentDetailResponse.builder()
+        return CommentResponse.builder()
                 .commentId(comment.getId())
                 .authorNickname(nickname)
                 .authorProfileImage(profileImage)
@@ -95,7 +92,7 @@ public class CommentService {
      * @return CommentResponse 작성된 댓글 응답
      */
     @Transactional
-    public CommentResponse createComment(HttpServletRequest httpRequest, CommentCreateRequest request) {
+    public Long createComment(HttpServletRequest httpRequest, CommentCreateRequest request) {
         log.info("댓글 작성 요청 - Post ID: {}", request.getPostId());
 
         // 헤더에서 사용자 정보 추출
@@ -122,7 +119,7 @@ public class CommentService {
         commentRepository.save(comment);
         log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
 
-        return commentMapper.toResponse(comment, userProfile.getNickname());
+        return comment.getId();
     }
 
     /**
@@ -133,7 +130,7 @@ public class CommentService {
      * @return CommentResponse 수정된 댓글 응답
      */
     @Transactional
-    public CommentResponse updateComment(HttpServletRequest httpRequest, Long commentId, CommentUpdateRequest request) {
+    public Long updateComment(HttpServletRequest httpRequest, Long commentId, CommentUpdateRequest request) {
         log.info("댓글 수정 요청 - Comment ID: {}", commentId);
 
         // 헤더에서 사용자 정보 추출
@@ -147,7 +144,7 @@ public class CommentService {
         commentRepository.save(comment);
         log.info("댓글 수정 완료 - Comment ID: {}", comment.getId());
 
-        return commentMapper.toResponse(comment, userProfile.getNickname());
+        return comment.getId();
     }
 
     /**
