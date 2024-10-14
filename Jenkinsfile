@@ -97,7 +97,7 @@ pipeline {
                     fi
                     '''
                     // 새로운 컨테이너 실행
-                    sh 'docker run -d --name blog -p 8761:8761 hojun8094/blog:latest'
+                    sh 'docker run -d --network msa-network --name blog -p 8761:8761 hojun8094/blog:latest'
                 }
             }
         }
