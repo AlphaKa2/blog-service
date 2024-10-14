@@ -24,6 +24,7 @@ pipeline {
         }
         stage('Replace Secret Properties') {
             steps {
+                sh 'chmod -R u+w ./src/main/resources'
                 withCredentials([file(credentialsId: 'blogSecret', variable: 'blogSecret')]) {
                     script {
                         sh 'cp $blogSecret ./src/main/resources/application-secret.yml'
