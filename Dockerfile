@@ -16,6 +16,9 @@ FROM openjdk:17-jdk-alpine
 # 빌드한 JAR 파일을 복사
 COPY --from=build /home/gradle/project/build/libs/*.jar app.jar
 
+# 권한 문제 해결을 위한 추가 권한 설정
+RUN chmod 755 /app.jar
+
 # 포트 노출
 EXPOSE 8003
 
