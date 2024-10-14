@@ -1,7 +1,6 @@
 package com.alphaka.blogservice.service;
 
 import com.alphaka.blogservice.client.UserClient;
-import com.alphaka.blogservice.dto.event.UserSignUpEvent;
 import com.alphaka.blogservice.exception.custom.BlogCreationFailedException;
 import com.alphaka.blogservice.exception.custom.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,21 +21,22 @@ public class EventListenerService {
     // Kafka Topic으로부터 UserSignUpEvent를 수신하여 블로그 생성
     @Transactional
     @KafkaListener(topics = "user-signup", groupId = "blog-service")
-    public void handleUserSignUpEvent(UserSignUpEvent userSignUpEvent) {
-        log.info("UserSignUpEvent received: {}", userSignUpEvent);
+    public void handleUserSignUpEvent(String userId) {
+        Long id = Long.parseLong(userId);
+        log.info("UserSignUpEvent received: {}", id);
 
-        // 유저 존재 여부 검증 (boolean 사용)
-        log.info("Checking user existence for ID: {}", userSignUpEvent.getId());
-        if (!userClient.isUserExists(userSignUpEvent.getId())) {
-            log.error("User not found for ID: {}", userSignUpEvent.getId());
+        // 유저 존재 여부 검증 (boolean 사용)l
+        log.info("Checking user existence for ID: {}", id);
+        if (userClient.findUser(id).getData() == null) {
+            log.error("User not found for ID: {}", id);
             throw new UserNotFoundException();
         }
-        log.info("User found for ID: {}", userSignUpEvent.getId());
+        log.info("User found for ID: {}", id);
 
         // 블로그 생성 (실패시 롤백)
         try {
-            blogService.createBlog(userSignUpEvent.getId());
-            log.info("Blog created for user: {}", userSignUpEvent.getId());
+            blogService.createBlog(id);
+            log.info("Blog created for user: {}", id);
         } catch (Exception e) {
             log.error("Blog creation failed: {}", e.getMessage());
             throw new BlogCreationFailedException();

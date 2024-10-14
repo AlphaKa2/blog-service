@@ -3,7 +3,9 @@ package com.alphaka.blogservice.service;
 import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.CommentCreateRequest;
 import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
+import com.alphaka.blogservice.dto.request.UserInfo;
 import com.alphaka.blogservice.dto.request.UserProfile;
+import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.dto.response.CommentResponse;
 import com.alphaka.blogservice.entity.Comment;
 import com.alphaka.blogservice.entity.Post;
@@ -63,9 +65,9 @@ public class CommentService {
      * @return CommentDetailResponse 부모 및 자식 댓글 정보
      */
     private CommentResponse mapToResponse(Comment comment) {
-        // 작성자 프로필 이미지와 닉네임을 UserClient를 통해 가져오기
-        String nickname = userClient.findNicknameByUserId(comment.getUserId());
-        String profileImage = userClient.findProfileImageByUserId(comment.getUserId());
+        // 사용자 프로필 가져오기
+        ApiResponse<UserInfo> response = userClient.findUser(comment.getUserId());
+        UserInfo user = response.getData();
 
         // 자식 댓글 재귀적으로 처리
         List<CommentResponse> children = comment.getChildren().stream()
@@ -76,8 +78,8 @@ public class CommentService {
         // 부모 댓글 정보와 자식 댓글 리스트를 포함한 DTO 생성
         return CommentResponse.builder()
                 .commentId(comment.getId())
-                .authorNickname(nickname)
-                .authorProfileImage(profileImage)
+                .authorNickname(user.getNickname())
+                .authorProfileImage(user.getProfileImage())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .likeCount(comment.getLikes().size())  // 좋아요 수

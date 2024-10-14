@@ -19,9 +19,10 @@ public class UserProfileService {
     public UserProfile getUserProfileFromHeader(HttpServletRequest request) {
         log.info("사용자 정보 추출 요청");
 
-        String userIdHeader = request.getHeader("X-USER-ID");
-        String userNicknameHeader = request.getHeader("X-USER-NICKNAME");
-        String userProfileImageHeader = request.getHeader("X-USER-PROFILE-IMAGE");
+        String userIdHeader = request.getHeader("X-User-Id");
+        String userNicknameHeader = request.getHeader("X-User-Nickname");
+        String userProfileImageHeader = request.getHeader("X-User-Profile");
+        String userRole = request.getHeader("X-User-Role");
 
         if (userIdHeader == null || userNicknameHeader == null || userProfileImageHeader == null) {
             log.error("헤더에서 사용자 정보를 찾을 수 없습니다.");
