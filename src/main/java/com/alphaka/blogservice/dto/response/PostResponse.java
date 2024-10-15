@@ -19,15 +19,15 @@ public class PostResponse {
     private String title;
     private String content;
     private List<String> tags;
-    private int likeCount;
-    private int viewCount;
+    private Long likeCount;
+    private Integer viewCount;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
     @Builder
     public PostResponse(Long postId, String author, String title, String content, List<String> tags,
-                        int likeCount, int viewCount, LocalDateTime createdAt) {
+                        Long likeCount, Integer viewCount, LocalDateTime createdAt) {
         this.postId = postId;
         this.author = author;
         this.title = title;
