@@ -26,8 +26,8 @@ public class PostUpdateRequest {
     @NotBlank(message = "내용은 필수입니다.")
     private String content;
 
-    private boolean isPublic;
-    private boolean isCommentable;
+    private boolean visible;
+    private boolean commentable;
 
     private List<MultipartFile> images;
     private List<MultipartFile> videos;
