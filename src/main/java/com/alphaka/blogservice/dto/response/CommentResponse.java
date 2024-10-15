@@ -16,18 +16,21 @@ public class CommentResponse {
     private String content;
     private int likeCount;
     private List<CommentResponse> children;  // 자식 댓글 리스트
+    private boolean isLiked;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
     @Builder
-    public CommentResponse(Long commentId, String authorNickname, String authorProfileImage, String content, int likeCount, List<CommentResponse> children, LocalDateTime createdAt) {
+    public CommentResponse(Long commentId, String authorNickname, String authorProfileImage, String content, int likeCount,
+                           List<CommentResponse> children, boolean isLiked, LocalDateTime createdAt) {
         this.commentId = commentId;
         this.authorNickname = authorNickname;
         this.authorProfileImage = authorProfileImage;
         this.content = content;
         this.likeCount = likeCount;
         this.children = children;
+        this.isLiked = isLiked;
         this.createdAt = createdAt;
     }
 }

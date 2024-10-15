@@ -19,4 +19,7 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 
     // 사용자 ID와 게시글로 좋아요 정보 존재 여부 조회
     boolean existsByUserIdAndPost(Long userId, Post post);
+
+    // 사용자 ID와 댓글로 좋아요 정보 존재 여부 조회
+    boolean existsByUserIdAndComment(Long userId, Comment comment);
 }

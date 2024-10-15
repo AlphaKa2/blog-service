@@ -11,6 +11,7 @@ import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.exception.custom.*;
 import com.alphaka.blogservice.projection.CommentProjectionImpl;
 import com.alphaka.blogservice.repository.CommentRepository;
+import com.alphaka.blogservice.repository.LikeRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class CommentService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final UserProfileService userProfileService;
+    private final LikeRepository likeRepository;
 
     /**
      * 특정 게시글의 댓글 조회
@@ -51,7 +53,9 @@ public class CommentService {
         boolean isPostAuthor = currentUser != null && currentUser.getUserId().equals(post.getUserId());
 
         // 부모 댓글 조회
-        List<CommentProjectionImpl> parentProjections = commentRepository.findParentCommentsByPostId(postId, isPostAuthor, currentUser != null ? currentUser.getUserId() : null);
+        List<CommentProjectionImpl> parentProjections = commentRepository.findParentCommentsByPostId(
+                postId, isPostAuthor, currentUser != null ? currentUser.getUserId() : null
+        );
 
         // 부모 댓글을 DTO로 변환하면서 작성자 정보 추가
         List<CommentResponse> parentComments = parentProjections.stream()
@@ -59,10 +63,17 @@ public class CommentService {
                     UserInfo author = userClient.findUser(parentComment.getAuthorId()).getData();
 
                     // 자식 댓글 재귀적으로 조회
-                    List<CommentResponse> childComments = getChildrenComments(parentComment.getCommentId(), isPostAuthor, currentUser != null ? currentUser.getUserId() : null);
+                    List<CommentResponse> childComments = getChildrenComments(
+                            parentComment.getCommentId(), isPostAuthor, currentUser != null ? currentUser.getUserId() : null
+                    );
+
+                    // 좋아요 여부 확인
+                    boolean isLiked = currentUser != null && likeRepository.existsByUserIdAndComment(
+                            currentUser.getUserId(), commentRepository.findById(parentComment.getCommentId()).orElseThrow(CommentNotFoundException::new)
+                    );
 
                     // 부모 댓글과 자식 댓글들을 함께 매핑
-                    return mapToCommentResponse(parentComment, author, childComments);
+                    return mapToCommentResponse(parentComment, author, childComments, isLiked);
                 })
                 .collect(Collectors.toList());
 
@@ -86,7 +97,11 @@ public class CommentService {
                 .map(childComment -> {
                     UserInfo childAuthor = userClient.findUser(childComment.getAuthorId()).getData();
                     List<CommentResponse> grandchildren = getChildrenComments(childComment.getCommentId(), includePrivateComments, userId); // 대댓글 조회
-                    return mapToCommentResponse(childComment, childAuthor, grandchildren);  // 자식 댓글과 대댓글 함께 매핑
+                    // 좋아요 여부 확인
+                    boolean isLiked = likeRepository.existsByUserIdAndComment(
+                            userId, commentRepository.findById(childComment.getCommentId()).orElseThrow(CommentNotFoundException::new)
+                    );
+                    return mapToCommentResponse(childComment, childAuthor, grandchildren, isLiked);  // 자식 댓글과 대댓글 함께 매핑
                 })
                 .collect(Collectors.toList());
     }
@@ -184,7 +199,8 @@ public class CommentService {
      * @param children 자식 댓글 목록
      * @return 댓글 응답 DTO
      */
-    private CommentResponse mapToCommentResponse(CommentProjectionImpl commentProjection, UserInfo author, List<CommentResponse> children) {
+    private CommentResponse mapToCommentResponse(CommentProjectionImpl commentProjection, UserInfo author,
+                                                 List<CommentResponse> children, boolean isLiked) {
         return CommentResponse.builder()
                 .commentId(commentProjection.getCommentId())
                 .authorNickname(author.getNickname())
@@ -192,6 +208,7 @@ public class CommentService {
                 .content(commentProjection.getContent())
                 .likeCount(commentProjection.getLikeCount().intValue())
                 .children(children)  // 자식 댓글 리스트
+                .isLiked(isLiked)
                 .createdAt(commentProjection.getCreatedAt())
                 .build();
     }
