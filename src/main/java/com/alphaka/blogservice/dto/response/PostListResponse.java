@@ -16,19 +16,22 @@ public class PostListResponse {
     private String representativeImage;
     private int likeCount;
     private int commentCount;
+    private int viewCount;
     private List<String> tags;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private String createdAt;
 
     @Builder
-    public PostListResponse(Long postId, String title, String contentSnippet, String representativeImage, int likeCount, int commentCount, List<String> tags, String createdAt) {
+    public PostListResponse(Long postId, String title, String contentSnippet, String representativeImage,
+                            int likeCount, int commentCount, int viewCount, List<String> tags, String createdAt) {
         this.postId = postId;
         this.title = title;
         this.contentSnippet = contentSnippet;
         this.representativeImage = representativeImage;
         this.likeCount = likeCount;
         this.commentCount = commentCount;
+        this.viewCount = viewCount;
         this.tags = tags;
         this.createdAt = createdAt;
     }
