@@ -7,6 +7,7 @@ import com.alphaka.blogservice.dto.response.PostListResponse;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,7 +27,7 @@ public class PostController {
      */
     @PostMapping
     public ApiResponse<Long> createPost(HttpServletRequest httpRequest,
-                                                @RequestBody PostCreateRequest request) {
+                                        @Valid @RequestBody PostCreateRequest request) {
         Long response = postService.createPost(httpRequest, request);
         return new ApiResponse<>(response);
     }
@@ -36,8 +37,8 @@ public class PostController {
      */
     @PutMapping("/{postId}")
     public ApiResponse<Long> updatePost(HttpServletRequest httpRequest,
-                                                @PathVariable("postId") Long postId,
-                                                @RequestBody PostUpdateRequest request) {
+                                        @PathVariable("postId") Long postId,
+                                        @Valid @RequestBody PostUpdateRequest request) {
         Long response = postService.updatePost(httpRequest, postId, request);
         return new ApiResponse<>(response);
     }
