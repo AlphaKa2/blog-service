@@ -9,6 +9,7 @@ public enum ErrorCode {
 
     // auth
     UNAUTHORIZED(401, "AUT001", "인증되지 않은 사용자입니다."),
+    SIGNIN_REQUIRED(401, "AUT002", "로그인이 필요합니다."),
 
     // User
     USER_NOT_FOUND(404, "USR001", "존재하지 않는 사용자입니다."),
