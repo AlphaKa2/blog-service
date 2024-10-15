@@ -81,10 +81,11 @@ public class PostController {
     // 정렬 기준에 따른 Sort 객체 반환
     private Sort getSort(String sort) {
         return switch (sort) {
-            case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "latest" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "oldest" -> Sort.by(Sort.Direction.DESC, "createdAt");
             case "views" -> Sort.by(Sort.Direction.DESC, "viewCount");
             case "likes" -> Sort.by(Sort.Direction.DESC, "likeCount");
-            default -> Sort.by(Sort.Direction.DESC, "createdAt"); // 기본값은 최신순
+            default -> Sort.by(Sort.Direction.ASC, "createdAt"); // 기본값은 최신순
         };
     }
 }

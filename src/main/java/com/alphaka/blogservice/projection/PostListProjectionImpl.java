@@ -4,8 +4,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 게시글 목록 조회용 프로젝션
@@ -23,10 +21,9 @@ public class PostListProjectionImpl implements PostListProjection{
     private boolean visible;
     private boolean commentable;
     private LocalDateTime createdAt;
-    private List<String> tags;
 
     public PostListProjectionImpl(Long postId, String title, String content, Long likeCount, Long commentCount, Integer viewCount,
-                                  boolean visible, boolean commentable, LocalDateTime createdAt, String tagName) {
+                                  boolean visible, boolean commentable, LocalDateTime createdAt) {
         this.postId = postId;
         this.title = title;
         this.content = content;
@@ -36,10 +33,6 @@ public class PostListProjectionImpl implements PostListProjection{
         this.visible = visible;
         this.commentable = commentable;
         this.createdAt = createdAt;
-        this.tags = new ArrayList<>();
-        if (!tagName.isEmpty()) {
-            this.tags.add(tagName);
-        }
     }
 
     @Override
@@ -85,10 +78,5 @@ public class PostListProjectionImpl implements PostListProjection{
     @Override
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    @Override
-    public List<String> getTags() {
-        return tags;
     }
 }

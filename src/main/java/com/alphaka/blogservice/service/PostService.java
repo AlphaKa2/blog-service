@@ -72,7 +72,10 @@ public class PostService {
         Page<PostListProjection> postListProjections = postRepository.findPostsByBlogId(blog.getId(), blogOwner.getUserId(), isOwner, pageable);
         // PostListProjection을 PostListResponse로 변환
         List<PostListResponse> postListResponses = postListProjections.getContent().stream()
-                .map(this::mapToPostListResponse) // 매핑 함수 호출
+                .map(postProjection -> {
+                    List<String> tags = postRepository.findTagsByPostId(postProjection.getPostId());
+                    return mapToPostListResponse(postProjection, tags);
+                })
                 .toList();
 
         log.info("블로그의 게시글 리스트 조회 완료 - Nickname: {}", nickname);
@@ -251,29 +254,29 @@ public class PostService {
 
     /**
      * 작성자 확인
-     * @param userProfile 현재 로그인한 사용자
+     * @param currentUser 현재 로그인한 사용자
      * @param author 게시글 작성자 정보
      * @return 작성자가 일치하는지 여부
      */
-    private boolean isAuthor(UserProfile userProfile, UserInfo author) {
-        return userProfile != null && userProfile.getUserId().equals(author.getUserId());
+    private boolean isAuthor(UserProfile currentUser, UserInfo author) {
+        return currentUser != null && currentUser.getUserId().equals(author.getUserId());
     }
 
     /**
      * 게시글 목록 응답으로 변환
      * @param projection 게시글 Projection
      */
-    private PostListResponse mapToPostListResponse(PostListProjection projection) {
+    private PostListResponse mapToPostListResponse(PostListProjection projection, List<String> tags) {
         return PostListResponse.builder()
                 .postId(projection.getPostId())
                 .title(projection.getTitle())
                 .contentSnippet(extractContentSnippet(projection.getContent()))
                 .representativeImage(extractFirstImage(projection.getContent()))
-                .likeCount(projection.getLikeCount().intValue())
-                .commentCount(projection.getCommentCount().intValue())
+                .likeCount(projection.getLikeCount().intValue())  // int로 변환
+                .commentCount(projection.getCommentCount().intValue())  // int로 변환
                 .viewCount(projection.getViewCount())
-                .tags(projection.getTags())
-                .createdAt(projection.getCreatedAt().toString())
+                .tags(tags)  // 태그 리스트 설정
+                .createdAt(projection.getCreatedAt().toString())  // 날짜 형식 맞춤
                 .build();
     }
 

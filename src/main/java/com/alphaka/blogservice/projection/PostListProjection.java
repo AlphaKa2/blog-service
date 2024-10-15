@@ -17,5 +17,4 @@ public interface PostListProjection {
     boolean getVisible();
     boolean getCommentable();
     LocalDateTime getCreatedAt();
-    List<String> getTags();
 }

@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -36,7 +37,6 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         QPost post = QPost.post;
         QLike like = QLike.like;
         QComment comment = QComment.comment;
-        QTag tag = QTag.tag;
         QPostTag postTag = QPostTag.postTag;
 
         // 좋아요 수 서브쿼리
@@ -51,10 +51,9 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .from(comment)
                 .where(comment.post.id.eq(post.id));
 
-
         // 기본 쿼리
         JPAQuery<PostListProjectionImpl> query = queryFactory
-                .select(Projections.constructor(PostListProjectionImpl.class,
+                .selectDistinct(Projections.constructor(PostListProjectionImpl.class,
                         post.id.as("postId"),
                         post.title.as("title"),
                         post.content.as("content"),
@@ -63,18 +62,19 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                         post.viewCount.as("viewCount"),
                         post.isPublic.as("visible"),
                         post.isCommentable.as("commentable"),
-                        post.createdAt.as("createdAt"),
-                        postTag.tag.tagName.as("tagName")  // 태그 추가
+                        post.createdAt.as("createdAt")
                 ))
                 .from(post)
                 .leftJoin(post.postTags, postTag)
-                .leftJoin(postTag.tag, tag)
                 .where(post.blog.id.eq(blogId));
 
         // 소유자가 아니라면 공개된 게시글만 조회
         if (!isOwner) {
             query.where(post.isPublic.isTrue());
         }
+
+        // 정렬 기준 적용
+        applySorting(query, pageable);
 
         // 페이징 처리
         List<PostListProjection> content = query
@@ -138,40 +138,48 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .fetch();
     }
 
-    // 정렬 조건 설정 (Sort 객체를 OrderSpecifier 배열로 변환)
-    private OrderSpecifier<?>[] getOrderSpecifiers(Sort sort, QPost post) {
-        return sort.stream()
-                .map(order -> {
-                    PathBuilder<?> path = new PathBuilder<>(post.getType(), post.getMetadata());
-                    return new OrderSpecifier(order.isAscending() ? Order.ASC : Order.DESC, path.get(order.getProperty()));
-                })
-                .toArray(OrderSpecifier[]::new);
+    // 정렬 기준 적용
+    private void applySorting(JPAQuery<?> query, Pageable pageable) {
+        Sort sort = pageable.getSort();
+
+        for (Sort.Order order : sort) {
+            PathBuilder<?> pathBuilder = new PathBuilder<>(QPost.post.getType(), QPost.post.getMetadata());
+
+            switch (order.getProperty()) {
+                case "createdAt" -> {
+                    PathBuilder<LocalDateTime> createdAtPath = pathBuilder.get("createdAt", LocalDateTime.class);
+                    if (order.isAscending()) {
+                        query.orderBy(new OrderSpecifier<>(Order.ASC, createdAtPath));
+                    } else {
+                        query.orderBy(new OrderSpecifier<>(Order.DESC, createdAtPath));
+                    }
+                }
+                case "viewCount" -> {
+                    PathBuilder<Integer> viewCountPath = pathBuilder.get("viewCount", Integer.class);
+                    if (order.isAscending()) {
+                        query.orderBy(new OrderSpecifier<>(Order.ASC, viewCountPath));
+                    } else {
+                        query.orderBy(new OrderSpecifier<>(Order.DESC, viewCountPath));
+                    }
+                }
+                case "likeCount" -> {
+                    PathBuilder<Long> likeCountPath = pathBuilder.get("likeCount", Long.class);
+                    if (order.isAscending()) {
+                        query.orderBy(new OrderSpecifier<>(Order.ASC, likeCountPath));
+                    } else {
+                        query.orderBy(new OrderSpecifier<>(Order.DESC, likeCountPath));
+                    }
+                }
+                default -> {
+                    // 기본 정렬 필드 (createdAt 기준)
+                    PathBuilder<LocalDateTime> defaultPath = pathBuilder.get("createdAt", LocalDateTime.class);
+                    if (order.isAscending()) {
+                        query.orderBy(new OrderSpecifier<>(Order.ASC, defaultPath));
+                    } else {
+                        query.orderBy(new OrderSpecifier<>(Order.DESC, defaultPath));
+                    }
+                }
+            }
+        }
     }
 }
-
-//// 블로그의 게시글 정보 조회 (tags 제외)
-//// 만약 isOwner가 true라면 모든 게시글을 조회하고, false라면 공개된 게시글만 조회
-//List<PostListProjectionImpl> content = queryFactory
-//        .select(Projections.constructor(PostListProjectionImpl.class,
-//                post.id.as("postId"),
-//                post.title.as("title"),
-//                post.content.as("content"),
-//                // 좋아요 수 조회 (서브쿼리)
-//                JPAExpressions.select(like.count())
-//                        .from(like)
-//                        .where(like.post.id.eq(post.id)),
-//                // 댓글 수 조회 (서브쿼리)
-//                JPAExpressions.select(comment.count())
-//                        .from(comment)
-//                        .where(comment.post.id.eq(post.id)),
-//                post.viewCount.as("viewCount"),
-//                post.isPublic.as("visible"),
-//                post.isCommentable.as("commentable"),
-//                post.createdAt.as("createdAt")
-//        ))
-//        .from(post)
-//        .where(isOwner ? post.blog.userId.eq(blogOwnerId) : post.isPublic.isTrue().and(post.blog.userId.eq(blogOwnerId)))
-//        .orderBy(getOrderSpecifiers(pageable.getSort(), post))
-//        .offset(pageable.getOffset())
-//        .limit(pageable.getPageSize())
-//        .fetch();
