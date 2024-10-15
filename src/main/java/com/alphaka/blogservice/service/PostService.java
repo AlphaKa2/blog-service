@@ -15,6 +15,7 @@ import com.alphaka.blogservice.exception.custom.UnauthorizedException;
 import com.alphaka.blogservice.projection.PostDetailProjectionImpl;
 import com.alphaka.blogservice.projection.PostListProjection;
 import com.alphaka.blogservice.repository.BlogRepository;
+import com.alphaka.blogservice.repository.LikeRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,7 @@ public class PostService {
     private final UserProfileService userProfileService;
     private final BlogRepository blogRepository;
     private final PostRepository postRepository;
+    private final LikeRepository likeRepository;
     private final RedisTemplate<String, String> redisTemplate;
 
     /**
@@ -107,9 +109,16 @@ public class PostService {
             return handlePrivatePost(projection, author, postId);
         }
 
-        // 태그 조회 및 게시글 응답 매핑
+        // 태그 조회
         List<String> tags = postRepository.findTagsByPostId(postId);
-        PostResponse response = mapToPostResponse(projection, author, tags);
+
+        // 요청한 사용자 좋아요 여부 확인
+        boolean isLiked = false;
+        if (currentUser != null) {
+            isLiked = likeRepository.existsByUserIdAndPost(currentUser.getUserId(),
+                    postRepository.findById(postId).orElseThrow(PostNotFoundException::new));
+        }
+        PostResponse response = mapToPostResponse(projection, author, tags, isLiked);
 
         // 조회수 증가
         increaseViewCount(postId, httpRequest);
@@ -286,7 +295,7 @@ public class PostService {
      * @param author 작성자 정보
      * @param tags 태그 목록
      */
-    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags) {
+    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags, boolean isLiked) {
         return PostResponse.builder()
                 .postId(projection.getPostId())
                 .author(author.getNickname())
@@ -295,6 +304,7 @@ public class PostService {
                 .likeCount(projection.getLikeCount())
                 .viewCount(projection.getViewCount())
                 .tags(tags)
+                .isLike(isLiked)
                 .createdAt(projection.getCreatedAt())
                 .build();
     }

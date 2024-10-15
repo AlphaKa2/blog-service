@@ -21,13 +21,14 @@ public class PostResponse {
     private List<String> tags;
     private Long likeCount;
     private Integer viewCount;
+    private boolean isLiked;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
     @Builder
     public PostResponse(Long postId, String author, String title, String content, List<String> tags,
-                        Long likeCount, Integer viewCount, LocalDateTime createdAt) {
+                        Long likeCount, Integer viewCount, boolean isLike, LocalDateTime createdAt) {
         this.postId = postId;
         this.author = author;
         this.title = title;
@@ -35,6 +36,7 @@ public class PostResponse {
         this.tags = tags;
         this.likeCount = likeCount;
         this.viewCount = viewCount;
+        this.isLiked = isLike;
         this.createdAt = createdAt;
     }
 }
