@@ -1,6 +1,5 @@
 package com.alphaka.blogservice.service;
 
-import com.alphaka.blogservice.Mapper.PostMapper;
 import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.request.PostUpdateRequest;
@@ -13,6 +12,8 @@ import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
 import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
+import com.alphaka.blogservice.projection.PostDetailProjection;
+import com.alphaka.blogservice.projection.PostListProjection;
 import com.alphaka.blogservice.repository.BlogRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,7 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -46,54 +46,44 @@ public class PostService {
     private final UserProfileService userProfileService;
     private final BlogRepository blogRepository;
     private final PostRepository postRepository;
-    private final PostMapper postMapper = PostMapper.INSTANCE;
     private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * 특정 블로그의 게시글 목록 조회
+     * @param request HTTP 요청
      * @param nickname 블로그 닉네임
+     * @param pageable 페이징 정보
      * @return List<PostListResponse> 게시글 정보 목록
      */
-    public Page<PostListResponse> getBlogPostList(String nickname, Pageable pageable) {
+    public Page<PostListResponse> getBlogPostList(HttpServletRequest request, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}, Page: {}", nickname, pageable.getPageNumber());
 
-        // 닉네임을 통해 사용자 ID 조회
-        UserInfo user = userClient.findUser(nickname).getData();
+        // 현재 요청한 사용자 조회
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(request);
 
+        // 블로그 사용자 ID 조회
+        UserInfo user = userClient.findUser(nickname).getData();
         // 블로그 조회
         Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
 
-        // JPQL 쿼리를 통해 게시글별 좋아요 수와 댓글 수를 조회
-        Page<Object[]> postLikeCommentCounts = postRepository.findPostLikeAndCommentCountsByBlogId(blog.getId(), pageable);
+        // 현재 사용자가 블로그 소유자인지 확인
+        boolean isOwner = blog.getUserId().equals(currentUser.getUserId());
 
-        // 결과를 DTO로 변환하여 처리
-        Page<PostListResponse> responsePage = postLikeCommentCounts.map(result -> {
-                    Long postId = (Long) result[0];
-                    Long likeCount = (Long) result[1];
-                    Long commentCount = (Long) result[2];
+        // 게시글 목록 조회
+        Page<PostListProjection> postProjections = postRepository.findPostsByBlogId(user.getUserId(), isOwner, pageable);
 
-                    // 게시글 정보를 조회 (필요한 다른 정보 추가 가능)
-                    Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
-
-                    // 첫 번째 이미지를 대표 이미지로 설정
-                    String representativeImage = extractFirstImage(post.getContent());
-
-                    // 태그 목록 추출
-                    List<String> tagNames = post.getPostTags().stream()
-                            .map(postTag -> postTag.getTag().getTagName())
-                            .collect(Collectors.toList());
-
-                    return PostListResponse.builder()
-                            .postId(postId)
-                            .title(post.getTitle())
-                            .contentSnippet(extractContentSnippet(post.getContent()))
-                            .representativeImage(representativeImage)
-                            .likeCount(likeCount.intValue())  // Long -> int 변환
-                            .commentCount(commentCount.intValue())  // Long -> int 변환
-                            .tags(tagNames)
-                            .createdAt(post.getCreatedAt().toString())
-                            .build();
-                });
+        // Projection을 DTO로 변환
+        Page<PostListResponse> responsePage = postProjections.map(projection -> PostListResponse.builder()
+                .postId(projection.getPostId())
+                .title(projection.getTitle())
+                .contentSnippet(extractContentSnippet(projection.getContent()))
+                .representativeImage(extractFirstImage(projection.getContent()))
+                .likeCount(projection.getLikeCount())
+                .commentCount(projection.getCommentCount())
+                .viewCount(projection.getViewCount())
+                .tags(projection.getTags())
+                .createdAt(projection.getCreatedAt().toString())
+                .build());
 
         log.info("블로그의 게시글 리스트 조회 완료 - Nickname: {}", nickname);
         return responsePage;
@@ -108,18 +98,51 @@ public class PostService {
     public PostResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
-        // 게시글 조회
-        Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
-        UserInfo user = userClient.findUser(post.getUserId()).getData();
+        /**
+         * 게시글 조회 -> 사용자 확인 -> 게시글 공개 여부 확인 ->
+         * 비공개라면 현재 사용자가 작성자인지 확인 -> 확인 여부에 따른 응답 -> 확인 여부에 따른 조회수 증가
+        */
 
-        // 태그 목록 추출
-        List<String> tagNames = post.getPostTags().stream()
-                .map(postTag -> postTag.getTag().getTagName())
-                .toList();
+        // 게시글 조회
+        PostDetailProjection projection = postRepository.findPostDetailById(postId);
+        if (projection == null) {
+            log.error("게시글을 찾을 수 없습니다 - Post ID: {}", postId);
+            throw new PostNotFoundException();
+        }
+
+        // 작성자 정보 확인
+        UserInfo user = userClient.findUser(projection.getAuthorId()).getData();
+
+        // 현재 사용자 정보 확인
+        UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
+
+        // 비공개 게시글 처리
+        if (!projection.getIsPublic()) {
+            if (userProfile == null || !userProfile.getUserId().equals(user.getUserId())) {
+                return PostResponse.builder()
+                        .postId(postId)
+                        .author(user.getNickname())
+                        .title("비공개 게시글입니다.")
+                        .content("비공개 게시글입니다.")
+                        .likeCount(0)
+                        .viewCount(0)
+                        .tags(null)
+                        .createdAt(projection.getCreatedAt())
+                        .build();
+            }
+        }
 
         // 응답 객체 매핑
-        PostResponse response = postMapper.toResponse(post, user.getNickname(), tagNames);
-        response.setTags(tagNames);
+        PostResponse response = PostResponse.builder()
+                .postId(postId)
+                .author(user.getNickname())
+                .title(projection.getTitle())
+                .content(projection.getContent())
+                .likeCount(projection.getLikeCount())
+                .viewCount(projection.getViewCount())
+                .tags(projection.getTags())
+                .createdAt(projection.getCreatedAt())
+                .build();
 
         // 조회수 증가
         String ipAddress = getClientIp(httpRequest);
