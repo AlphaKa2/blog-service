@@ -54,8 +54,9 @@ public class CommentController {
      * 특정 게시글의 댓글 조회
      */
     @GetMapping("/post/{postId}")
-    public ApiResponse<List<CommentResponse>> getCommentsForPost(@PathVariable("postId") Long postId) {
-        List<CommentResponse> response = commentService.getCommentsForPost(postId);
+    public ApiResponse<List<CommentResponse>> getCommentsForPost(HttpServletRequest httpRequest,
+                                                                 @PathVariable("postId") Long postId) {
+        List<CommentResponse> response = commentService.getCommentsForPost(httpRequest, postId);
         return new ApiResponse<>(response);
     }
 }
