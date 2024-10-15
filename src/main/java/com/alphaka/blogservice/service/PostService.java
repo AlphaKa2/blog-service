@@ -102,12 +102,6 @@ public class PostService {
     public PostResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
-        /**
-         * 게시글 조회 -> 사용자 확인 -> 게시글 공개 여부 확인 ->
-         * 비공개라면 현재 사용자가 작성자인지 확인 -> 확인 여부에 따른 응답 -> 확인 여부에 따른 조회수 증가
-        */
-
-
         // 게시글 조회
         PostDetailProjectionImpl projection = (PostDetailProjectionImpl) postRepository.findPostDetailById(postId);
         if (projection == null) {
@@ -119,31 +113,22 @@ public class PostService {
         List<String> tags = postRepository.findTagsByPostId(postId);
 
         // 작성자 정보 확인
-        UserInfo user = userClient.findUser(projection.getAuthorId()).getData();
+        UserInfo author = userClient.findUser(projection.getAuthorId()).getData();
 
         // 현재 사용자 정보 확인
         UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
 
-        // 비공개 게시글 처리
-        if (!projection.getIsPublic()) {
-            if (userProfile == null || !userProfile.getUserId().equals(user.getUserId())) {
-                return PostResponse.builder()
-                        .postId(postId)
-                        .author(user.getNickname())
-                        .title("비공개 게시글입니다.")
-                        .content("비공개 게시글입니다.")
-                        .likeCount(0L)
-                        .viewCount(0)
-                        .tags(null)
-                        .createdAt(projection.getCreatedAt())
-                        .build();
-            }
+        // 비공개 게시글 여부 확인 및 처리
+        if (!projection.getIsPublic() && !isAuthor(userProfile, author)) {
+            // 비공개 게시글 처리 - 작성자가 아닌 경우
+            log.info("비공개 게시글 - Post ID: {}", postId);
+            return handlePrivatePost(projection, author, postId);
         }
 
-        // 응답 객체 매핑
+        // 게시글 정보 매핑 및 응답 생성 (공개 게시글 또는 작성자가 맞는 경우)
         PostResponse response = PostResponse.builder()
                 .postId(postId)
-                .author(user.getNickname())
+                .author(author.getNickname())
                 .title(projection.getTitle())
                 .content(projection.getContent())
                 .likeCount(projection.getLikeCount())
@@ -263,6 +248,24 @@ public class PostService {
     }
 
     /**
+     * 조회한 비공개 게시글 처리
+     * 작성자가 아닌 경우 게시글 내용을 비공개로 처리
+     */
+    @Transactional
+    public PostResponse handlePrivatePost(PostDetailProjectionImpl projection, UserInfo author, Long postId) {
+        return PostResponse.builder()
+                .postId(postId)
+                .author(author.getNickname())
+                .title("비공개 게시글입니다.")
+                .content("비공개 게시글입니다.")
+                .likeCount(null)
+                .viewCount(null)
+                .tags(null)
+                .createdAt(projection.getCreatedAt())
+                .build();
+    }
+
+    /**
      * 게시글 작성자인지 확인
      * @param postId 게시글 ID
      * @param userId 사용자 ID
@@ -371,5 +374,15 @@ public class PostService {
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         return (xForwardedFor != null) ? xForwardedFor.split(",")[0] : request.getRemoteAddr();
+    }
+
+    /**
+     * 작성자 확인
+     * @param userProfile 현재 로그인한 사용자
+     * @param author 게시글 작성자 정보
+     * @return 작성자가 일치하는지 여부
+     */
+    private boolean isAuthor(UserProfile userProfile, UserInfo author) {
+        return userProfile != null && userProfile.getUserId().equals(author.getUserId());
     }
 }
