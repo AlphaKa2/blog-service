@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface PostRepositoryCustom {
 
@@ -14,4 +16,7 @@ public interface PostRepositoryCustom {
 
     // 게시글 ID로 게시글 상세 조회
     PostDetailProjection findPostDetailById(Long postId);
+
+    // 태그 조회 메서드 추가
+    List<String> findTagsByPostId(Long postId);
 }
