@@ -9,10 +9,7 @@ import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.dto.response.CommentResponse;
 import com.alphaka.blogservice.entity.Comment;
 import com.alphaka.blogservice.entity.Post;
-import com.alphaka.blogservice.exception.custom.CommentNotFoundException;
-import com.alphaka.blogservice.exception.custom.ParentCommentNotFoundException;
-import com.alphaka.blogservice.exception.custom.PostNotFoundException;
-import com.alphaka.blogservice.exception.custom.UnauthorizedException;
+import com.alphaka.blogservice.exception.custom.*;
 import com.alphaka.blogservice.repository.CommentRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,6 +57,72 @@ public class CommentService {
     }
 
     /**
+     * 댓글 작성
+     * @param httpRequest HTTP 요청
+     * @param request 댓글 작성 요청
+     * @return CommentResponse 작성된 댓글 응답
+     */
+    @Transactional
+    public Long createComment(HttpServletRequest httpRequest, CommentCreateRequest request) {
+        log.info("댓글 작성 요청 - Post ID: {}", request.getPostId());
+
+        // 현재 사용자 확인
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
+        if (currentUser == null) {
+            log.error("로그인 해야 댓글을 작성할 수 있습니다.");
+            throw new SignInRequiredException();
+        }
+
+        // 댓글 작성하려는 게시글 존재 확인
+        Post post = postRepository.findById(request.getPostId()).orElseThrow(PostNotFoundException::new);
+
+        // 부모 댓글이 있을 경우 확인
+        Comment parentComment = null;
+        if (request.getParentId() != null) {
+            parentComment = commentRepository.findById(request.getParentId()).orElseThrow(ParentCommentNotFoundException::new);
+        }
+
+        // 댓글 생성
+        Comment comment = Comment.builder()
+                .userId(currentUser.getUserId())
+                .post(post)
+                .content(request.getContent())
+                .parent(parentComment)
+                .isPublic(request.isPublic())
+                .build();
+
+        commentRepository.save(comment);
+
+        log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
+        return comment.getId();
+    }
+
+    /**
+     * 댓글 수정
+     * @param httpRequest HTTP 요청
+     * @param commentId 댓글 ID
+     * @param request 댓글 수정 요청
+     * @return CommentResponse 수정된 댓글 응답
+     */
+    @Transactional
+    public Long updateComment(HttpServletRequest httpRequest, Long commentId, CommentUpdateRequest request) {
+        log.info("댓글 수정 요청 - Comment ID: {}", commentId);
+
+        // 헤더에서 사용자 정보 추출
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
+
+        // 댓글 수정 권한 확인
+        Comment comment = validateCommentOwnership(commentId, currentUser.getUserId());
+
+        // 댓글 수정
+        comment.updateComment(request.getContent(), request.isPublic());
+        commentRepository.save(comment);
+        log.info("댓글 수정 완료 - Comment ID: {}", comment.getId());
+
+        return comment.getId();
+    }
+
+    /**
      * 댓글 엔티티를 DTO로 변환하고 자식 댓글 포함
      * @param comment 부모 댓글 엔티티
      * @return CommentDetailResponse 부모 및 자식 댓글 정보
@@ -85,68 +148,6 @@ public class CommentService {
                 .likeCount(comment.getLikes().size())  // 좋아요 수
                 .children(children)  // 자식 댓글 리스트
                 .build();
-    }
-
-    /**
-     * 댓글 작성
-     * @param httpRequest HttpServletRequest
-     * @param request 댓글 작성 요청
-     * @return CommentResponse 작성된 댓글 응답
-     */
-    @Transactional
-    public Long createComment(HttpServletRequest httpRequest, CommentCreateRequest request) {
-        log.info("댓글 작성 요청 - Post ID: {}", request.getPostId());
-
-        // 헤더에서 사용자 정보 추출
-        UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
-
-        // 게시글 존재 여부 확인
-        Post post = postRepository.findById(request.getPostId()).orElseThrow(PostNotFoundException::new);
-
-        // 부모 댓글이 있을 경우 확인
-        Comment parentComment = null;
-        if (request.getParentId() != null) {
-            parentComment = commentRepository.findById(request.getParentId()).orElseThrow(ParentCommentNotFoundException::new);
-        }
-
-        // 댓글 생성
-        Comment comment = Comment.builder()
-                .userId(userProfile.getUserId())
-                .post(post)
-                .content(request.getContent())
-                .parent(parentComment)
-                .isPublic(request.isPublic())
-                .build();
-
-        commentRepository.save(comment);
-        log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
-
-        return comment.getId();
-    }
-
-    /**
-     * 댓글 수정
-     * @param httpRequest HttpServletRequest
-     * @param commentId 댓글 ID
-     * @param request 댓글 수정 요청
-     * @return CommentResponse 수정된 댓글 응답
-     */
-    @Transactional
-    public Long updateComment(HttpServletRequest httpRequest, Long commentId, CommentUpdateRequest request) {
-        log.info("댓글 수정 요청 - Comment ID: {}", commentId);
-
-        // 헤더에서 사용자 정보 추출
-        UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
-
-        // 댓글 수정 권한 확인
-        Comment comment = validateCommentOwnership(commentId, userProfile.getUserId());
-
-        // 댓글 수정
-        comment.updateComment(request.getContent(), request.isPublic());
-        commentRepository.save(comment);
-        log.info("댓글 수정 완료 - Comment ID: {}", comment.getId());
-
-        return comment.getId();
     }
 
     /**
