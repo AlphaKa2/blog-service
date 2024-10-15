@@ -36,7 +36,7 @@ public class PostController {
      */
     @PutMapping("/{postId}")
     public ApiResponse<Long> updatePost(HttpServletRequest httpRequest,
-                                                @PathVariable Long postId,
+                                                @PathVariable("postId") Long postId,
                                                 @RequestBody PostUpdateRequest request) {
         Long response = postService.updatePost(httpRequest, postId, request);
         return new ApiResponse<>(response);
@@ -47,7 +47,7 @@ public class PostController {
      */
     @DeleteMapping("/{postId}")
     public ApiResponse<Void> deletePost(HttpServletRequest request,
-                                        @PathVariable Long postId) {
+                                        @PathVariable("postId") Long postId) {
         postService.deletePost(request, postId);
         return new ApiResponse<>(null);
     }
@@ -56,7 +56,7 @@ public class PostController {
      * 특정 블로그의 게시글 목록 조회 (페이징, 정렬 default: 최신순)
      * latest: 최신순, oldest: 오래된순, views: 조회수 많은순, likes: 좋아요 많은순
      */
-    @GetMapping("/{nickname}")
+    @GetMapping("/blog/{nickname}")
     public ApiResponse<Page<PostListResponse>> getBlogPostList(HttpServletRequest httpRequest,
                                                                @PathVariable("nickname") String nickname,
                                                                @RequestParam(value = "page", defaultValue = "1") int page,
@@ -72,7 +72,7 @@ public class PostController {
      */
     @GetMapping("/{postId}")
     public ApiResponse<PostResponse> getPostDetail(HttpServletRequest httpRequest,
-                                                   @PathVariable Long postId) {
+                                                   @PathVariable("postId") Long postId) {
         PostResponse response = postService.getPostDetails(httpRequest, postId);
         return new ApiResponse<>(response);
     }
