@@ -9,7 +9,9 @@ import com.alphaka.blogservice.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -51,14 +53,17 @@ public class PostController {
     }
 
     /**
-     * 특정 블로그의 게시글 목록 조회
+     * 특정 블로그의 게시글 목록 조회 (페이징, 정렬 default: 최신순)
+     * latest: 최신순, oldest: 오래된순, views: 조회수 많은순, likes: 좋아요 많은순
      */
     @GetMapping("/{nickname}")
-    public ApiResponse<Page<PostListResponse>> getBlogPostList(@PathVariable("nickname") String nickname,
+    public ApiResponse<Page<PostListResponse>> getBlogPostList(HttpServletRequest httpRequest,
+                                                               @PathVariable("nickname") String nickname,
                                                                @RequestParam(value = "page", defaultValue = "1") int page,
-                                                               @RequestParam(value = "size", defaultValue = "5") int size) {
-        Pageable pageable = Pageable.ofSize(size).withPage(page - 1);
-        Page<PostListResponse> response = postService.getBlogPostList(nickname, pageable);
+                                                               @RequestParam(value = "size", defaultValue = "5") int size,
+                                                               @RequestParam(value = "sort", defaultValue = "latest") String sort) {
+        Pageable pageable = PageRequest.of(page - 1, size, getSort(sort));
+        Page<PostListResponse> response = postService.getBlogPostList(httpRequest, nickname, pageable);
         return new ApiResponse<>(response);
     }
 
@@ -70,5 +75,15 @@ public class PostController {
                                                    @PathVariable Long postId) {
         PostResponse response = postService.getPostDetails(httpRequest, postId);
         return new ApiResponse<>(response);
+    }
+
+    // 정렬 기준에 따른 Sort 객체 반환
+    private Sort getSort(String sort) {
+        return switch (sort) {
+            case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "views" -> Sort.by(Sort.Direction.DESC, "viewCount");
+            case "likes" -> Sort.by(Sort.Direction.DESC, "likeCount");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt"); // 기본값은 최신순
+        };
     }
 }
