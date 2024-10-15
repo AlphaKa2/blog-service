@@ -23,6 +23,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -38,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class PostService {
 
-    private final S3Service s3Service;
     private final TagService tagService;
     private final UserClient userClient;
     private final UserProfileService userProfileService;
@@ -56,39 +56,27 @@ public class PostService {
     public Page<PostListResponse> getBlogPostList(HttpServletRequest request, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}, Page: {}", nickname, pageable.getPageNumber());
 
-        // 현재 요청한 사용자 조회 (null일 수 있음)
+        // 현재 요청한 사용자와 블로그 소유자 확인
         UserProfile currentUser = userProfileService.getUserProfileFromHeader(request);
-
-        // 블로그 사용자 ID 조회
-        UserInfo user = userClient.findUser(nickname).getData();
-        // 블로그 조회
-        Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
-
-        boolean isOwner = false;
-
-        // 현재 사용자가 블로그 소유자인지 확인
-        if (currentUser != null) {
-            isOwner = blog.getUserId().equals(currentUser.getUserId());
+        UserInfo blogOwner = userClient.findUser(nickname).getData();
+        Blog blog = blogRepository.findByUserId(blogOwner.getUserId());
+        if (blog == null) {
+            log.error("블로그를 찾을 수 없습니다 - Nickname: {}", nickname);
+            throw new BlogNotFoundException();
         }
 
-        // 게시글 목록 조회
-        Page<PostListProjection> postProjections = postRepository.findPostsByBlogId(user.getUserId(), isOwner, pageable);
+        // 소유자 여부 확인
+        boolean isOwner = isAuthor(currentUser, blogOwner);
 
-        // Projection을 DTO로 변환
-        Page<PostListResponse> responsePage = postProjections.map(projection -> PostListResponse.builder()
-                .postId(projection.getPostId())
-                .title(projection.getTitle())
-                .contentSnippet(extractContentSnippet(projection.getContent()))
-                .representativeImage(extractFirstImage(projection.getContent()))
-                .likeCount(projection.getLikeCount())
-                .commentCount(projection.getCommentCount())
-                .viewCount(projection.getViewCount())
-                .tags(projection.getTags())
-                .createdAt(projection.getCreatedAt().toString())
-                .build());
+        // 게시글 목록 조회 및 응답 매핑
+        Page<PostListProjection> postListProjections = postRepository.findPostsByBlogId(blog.getId(), blogOwner.getUserId(), isOwner, pageable);
+        // PostListProjection을 PostListResponse로 변환
+        List<PostListResponse> postListResponses = postListProjections.getContent().stream()
+                .map(this::mapToPostListResponse) // 매핑 함수 호출
+                .toList();
 
         log.info("블로그의 게시글 리스트 조회 완료 - Nickname: {}", nickname);
-        return responsePage;
+        return new PageImpl<>(postListResponses, pageable, postListProjections.getTotalElements());
     }
 
     /**
@@ -107,33 +95,18 @@ public class PostService {
             throw new PostNotFoundException();
         }
 
-        // 태그 조회
-        List<String> tags = postRepository.findTagsByPostId(postId);
-
-        // 작성자 정보 확인
+        // 작성자와 현재 사용자 정보 조회
         UserInfo author = userClient.findUser(projection.getAuthorId()).getData();
-
-        // 현재 사용자 정보 확인
-        UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
 
         // 비공개 게시글 여부 확인 및 처리
-        if (!projection.getIsPublic() && !isAuthor(userProfile, author)) {
-            // 비공개 게시글 처리 - 작성자가 아닌 경우
-            log.info("비공개 게시글 - Post ID: {}", postId);
+        if (!projection.getIsPublic() && !isAuthor(currentUser, author)) {
             return handlePrivatePost(projection, author, postId);
         }
 
-        // 게시글 정보 매핑 및 응답 생성 (공개 게시글 또는 작성자가 맞는 경우)
-        PostResponse response = PostResponse.builder()
-                .postId(postId)
-                .author(author.getNickname())
-                .title(projection.getTitle())
-                .content(projection.getContent())
-                .likeCount(projection.getLikeCount())
-                .viewCount(projection.getViewCount())
-                .tags(tags)
-                .createdAt(projection.getCreatedAt())
-                .build();
+        // 태그 조회 및 게시글 응답 매핑
+        List<String> tags = postRepository.findTagsByPostId(postId);
+        PostResponse response = mapToPostResponse(projection, author, tags);
 
         // 조회수 증가
         increaseViewCount(postId, httpRequest);
@@ -152,10 +125,8 @@ public class PostService {
     public Long createPost(HttpServletRequest httpRequest, PostCreateRequest request) {
         log.info("게시글 작성 요청 - Nickname: {}, Title: {}", request.getNickname(), request.getTitle());
 
-        // 현재 사용자 정보 추출
+        // 현재 사용자 확인 및 블로그 조회
         UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
-        log.debug("userProfile.userId 타입: {}", userProfile.getUserId().getClass());
-        // 닉네임을 통해 블로그 조회
         Blog blog = blogRepository.findByUserId(userProfile.getUserId());
         if (blog == null) {
             log.error("블로그를 찾을 수 없습니다 - User ID: {}", userProfile.getUserId());
@@ -191,16 +162,14 @@ public class PostService {
     public Long updatePost(HttpServletRequest httpRequest, Long postId, PostUpdateRequest request) {
         log.info("게시글 수정 요청 - Post ID: {}", postId);
 
-        // 현재 사용자 정보 추출
+        // 게시글 작성자 확인 및 업데이트
         UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
-
-        // 게시글 작성자 확인
         Post post = validatePostOwnership(postId, userProfile.getUserId());
 
         // 게시글 업데이트
         post.updatePost(request.getTitle(), request.getContent(), request.isVisible(), request.isCommentable());
-
         postRepository.save(post);
+
         // 태그 업데이트
         tagService.updateTagsForPost(post, request.getTagNames());
 
@@ -226,6 +195,8 @@ public class PostService {
 
     /**
      * 조회수 증가
+     * @param postId 게시글 ID
+     * @param httpRequest HTTP 요청
      */
     @Transactional
     public void increaseViewCount(Long postId, HttpServletRequest httpRequest) {
@@ -242,7 +213,9 @@ public class PostService {
 
     /**
      * 조회한 비공개 게시글 처리
-     * 작성자가 아닌 경우 게시글 내용을 비공개로 처리
+     * @param projection 게시글 Projection
+     * @param author 작성자 정보
+     * @param postId 게시글 ID
      */
     @Transactional
     public PostResponse handlePrivatePost(PostDetailProjectionImpl projection, UserInfo author, Long postId) {
@@ -259,7 +232,7 @@ public class PostService {
     }
 
     /**
-     * 게시글 작성자인지 확인
+     * 게시글 소유권 확인
      * @param postId 게시글 ID
      * @param userId 사용자 ID
      * @return Post 객체
@@ -274,6 +247,63 @@ public class PostService {
         }
 
         return post;
+    }
+
+    /**
+     * 작성자 확인
+     * @param userProfile 현재 로그인한 사용자
+     * @param author 게시글 작성자 정보
+     * @return 작성자가 일치하는지 여부
+     */
+    private boolean isAuthor(UserProfile userProfile, UserInfo author) {
+        return userProfile != null && userProfile.getUserId().equals(author.getUserId());
+    }
+
+    /**
+     * 게시글 목록 응답으로 변환
+     * @param projection 게시글 Projection
+     */
+    private PostListResponse mapToPostListResponse(PostListProjection projection) {
+        return PostListResponse.builder()
+                .postId(projection.getPostId())
+                .title(projection.getTitle())
+                .contentSnippet(extractContentSnippet(projection.getContent()))
+                .representativeImage(extractFirstImage(projection.getContent()))
+                .likeCount(projection.getLikeCount().intValue())
+                .commentCount(projection.getCommentCount().intValue())
+                .viewCount(projection.getViewCount())
+                .tags(projection.getTags())
+                .createdAt(projection.getCreatedAt().toString())
+                .build();
+    }
+
+    /**
+     * 게시글 상세 조회 응답으로 변환
+     * @param projection 게시글 Projection
+     * @param author 작성자 정보
+     * @param tags 태그 목록
+     */
+    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags) {
+        return PostResponse.builder()
+                .postId(projection.getPostId())
+                .author(author.getNickname())
+                .title(projection.getTitle())
+                .content(projection.getContent())
+                .likeCount(projection.getLikeCount())
+                .viewCount(projection.getViewCount())
+                .tags(tags)
+                .createdAt(projection.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 클라이언트 IP 주소 추출
+     * @param request HTTP 요청
+     * @return IP 주소
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        return (xForwardedFor != null) ? xForwardedFor.split(",")[0] : request.getRemoteAddr();
     }
 
     /**
@@ -309,25 +339,5 @@ public class PostService {
 
         // 50자 이상이면 50자까지만 반환
         return text.length() > 50 ? text.substring(0, 50).trim() + "..." : text;
-    }
-
-    /**
-     * 클라이언트 IP 주소 추출
-     * @param request HTTP 요청
-     * @return IP 주소
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        return (xForwardedFor != null) ? xForwardedFor.split(",")[0] : request.getRemoteAddr();
-    }
-
-    /**
-     * 작성자 확인
-     * @param userProfile 현재 로그인한 사용자
-     * @param author 게시글 작성자 정보
-     * @return 작성자가 일치하는지 여부
-     */
-    private boolean isAuthor(UserProfile userProfile, UserInfo author) {
-        return userProfile != null && userProfile.getUserId().equals(author.getUserId());
     }
 }
