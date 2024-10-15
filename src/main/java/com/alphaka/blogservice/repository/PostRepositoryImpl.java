@@ -126,42 +126,42 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
     public PostDetailProjection findPostDetailById(Long postId) {
         QPost post = QPost.post;
         QLike like = QLike.like;
-        QPostTag postTag = QPostTag.postTag;
-        QTag tag = QTag.tag;
 
-        // 게시글 상세 정보 조회
-        PostDetailProjection result = queryFactory
+        // 게시글 상세 정보 조회 (tags 제외)
+        PostDetailProjectionImpl response = queryFactory
                 .select(Projections.constructor(PostDetailProjectionImpl.class,
                         post.id.as("postId"),
                         post.userId.as("authorId"),
-                        post.title,
-                        post.content,
-                        // 태그 목록 서브쿼리
-                        ExpressionUtils.as(
-                                JPAExpressions.select(tag.tagName)
-                                        .from(postTag)
-                                        .join(postTag.tag, tag)
-                                        .where(postTag.post.id.eq(post.id)),
-                                "tags"
-                        ),
-                        // 좋아요 수 서브쿼리
-                        ExpressionUtils.as(
-                                JPAExpressions.select(like.count())
-                                        .from(like)
-                                        .where(like.post.id.eq(post.id)),
-                                "likeCount"
-                        ),
-                        post.viewCount,
-                        post.createdAt,
-                        post.isPublic
+                        post.title.as("title"),
+                        post.content.as("content"),
+                        // 좋아요 수 조회 (서브쿼리)
+                        JPAExpressions.select(like.count())
+                                .from(like)
+                                .where(like.post.id.eq(post.id)),
+                        post.viewCount.as("viewCount"),
+                        post.isPublic.as("isPublic"),
+                        post.createdAt.as("createdAt")
                 ))
                 .from(post)
                 .where(post.id.eq(postId))
                 .fetchOne();
 
-        return result;
+        return response;
     }
 
+    @Override
+    public List<String> findTagsByPostId(Long postId) {
+        QTag tag = QTag.tag;
+        QPostTag postTag = QPostTag.postTag;
+
+        // 게시글 ID로 태그 목록 조회
+        return queryFactory
+                .select(tag.tagName)
+                .from(postTag)
+                .join(postTag.tag, tag)
+                .where(postTag.post.id.eq(postId))
+                .fetch();
+    }
 
     // 정렬 조건 설정 (Sort 객체를 OrderSpecifier 배열로 변환)
     private OrderSpecifier<?>[] getOrderSpecifiers(Sort sort, QPost post) {
