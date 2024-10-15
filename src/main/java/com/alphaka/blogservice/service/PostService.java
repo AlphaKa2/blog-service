@@ -12,7 +12,7 @@ import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
 import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
-import com.alphaka.blogservice.projection.PostDetailProjection;
+import com.alphaka.blogservice.projection.PostDetailProjectionImpl;
 import com.alphaka.blogservice.projection.PostListProjection;
 import com.alphaka.blogservice.repository.BlogRepository;
 import com.alphaka.blogservice.repository.PostRepository;
@@ -58,7 +58,7 @@ public class PostService {
     public Page<PostListResponse> getBlogPostList(HttpServletRequest request, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}, Page: {}", nickname, pageable.getPageNumber());
 
-        // 현재 요청한 사용자 조회
+        // 현재 요청한 사용자 조회 (null일 수 있음)
         UserProfile currentUser = userProfileService.getUserProfileFromHeader(request);
 
         // 블로그 사용자 ID 조회
@@ -66,8 +66,12 @@ public class PostService {
         // 블로그 조회
         Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
 
+        boolean isOwner = false;
+
         // 현재 사용자가 블로그 소유자인지 확인
-        boolean isOwner = blog.getUserId().equals(currentUser.getUserId());
+        if (currentUser != null) {
+            isOwner = blog.getUserId().equals(currentUser.getUserId());
+        }
 
         // 게시글 목록 조회
         Page<PostListProjection> postProjections = postRepository.findPostsByBlogId(user.getUserId(), isOwner, pageable);
@@ -103,12 +107,16 @@ public class PostService {
          * 비공개라면 현재 사용자가 작성자인지 확인 -> 확인 여부에 따른 응답 -> 확인 여부에 따른 조회수 증가
         */
 
+
         // 게시글 조회
-        PostDetailProjection projection = postRepository.findPostDetailById(postId);
+        PostDetailProjectionImpl projection = (PostDetailProjectionImpl) postRepository.findPostDetailById(postId);
         if (projection == null) {
             log.error("게시글을 찾을 수 없습니다 - Post ID: {}", postId);
             throw new PostNotFoundException();
         }
+
+        // 태그 조회
+        List<String> tags = postRepository.findTagsByPostId(postId);
 
         // 작성자 정보 확인
         UserInfo user = userClient.findUser(projection.getAuthorId()).getData();
@@ -124,7 +132,7 @@ public class PostService {
                         .author(user.getNickname())
                         .title("비공개 게시글입니다.")
                         .content("비공개 게시글입니다.")
-                        .likeCount(0)
+                        .likeCount(0L)
                         .viewCount(0)
                         .tags(null)
                         .createdAt(projection.getCreatedAt())
@@ -140,20 +148,12 @@ public class PostService {
                 .content(projection.getContent())
                 .likeCount(projection.getLikeCount())
                 .viewCount(projection.getViewCount())
-                .tags(projection.getTags())
+                .tags(tags)
                 .createdAt(projection.getCreatedAt())
                 .build();
 
         // 조회수 증가
-        String ipAddress = getClientIp(httpRequest);
-        String redisKey = "post:viewCount:" + postId + ":" + ipAddress; // Redis 키 구성
-        ValueOperations<String, String> ops = redisTemplate.opsForValue();
-
-        // Redis에 조회수 증가 여부 확인
-        Boolean isNewView = ops.setIfAbsent(redisKey, "1", 1, TimeUnit.DAYS);
-        if (Boolean.TRUE.equals(isNewView)) {
-            postRepository.increaseViewCount(postId);  // 조회수 증가
-        }
+        increaseViewCount(postId, httpRequest);
 
         log.info("게시글 상세 조회 완료 - Post ID: {}", postId);
         return response;
@@ -171,9 +171,13 @@ public class PostService {
 
         // 현재 사용자 정보 추출
         UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
-
+        log.debug("userProfile.userId 타입: {}", userProfile.getUserId().getClass());
         // 닉네임을 통해 블로그 조회
-        Blog blog = blogRepository.findById(userProfile.getUserId()).orElseThrow(BlogNotFoundException::new);
+        Blog blog = blogRepository.findByUserId(userProfile.getUserId());
+        if (blog == null) {
+            log.error("블로그를 찾을 수 없습니다 - User ID: {}", userProfile.getUserId());
+            throw new BlogNotFoundException();
+        }
 
         // 게시글 내용 처리
         String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
@@ -183,7 +187,7 @@ public class PostService {
                 .blog(blog)
                 .title(request.getTitle())
                 .content(processedContent)
-                .isPublic(request.isPublic())
+                .isPublic(request.isVisible())
                 .isCommentable(request.isCommentable())
                 .build();
 
@@ -216,7 +220,7 @@ public class PostService {
         // 게시글 내용 처리
         String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
 
-        post.updatePost(request.getTitle(), processedContent, request.isPublic(), request.isCommentable());
+        post.updatePost(request.getTitle(), processedContent, request.isVisible(), request.isCommentable());
 
         postRepository.save(post);
         // 태그 업데이트
@@ -240,6 +244,22 @@ public class PostService {
 
         postRepository.delete(post);
         log.info("게시글 삭제 완료 - Post ID: {}", post.getId());
+    }
+
+    /**
+     * 조회수 증가
+     */
+    @Transactional
+    public void increaseViewCount(Long postId, HttpServletRequest httpRequest) {
+        String ipAddress = getClientIp(httpRequest);
+        String redisKey = "post:viewCount:" + postId + ":" + ipAddress; // Redis 키 구성
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+
+        // Redis에 조회수 증가 여부 확인
+        Boolean isNewView = ops.setIfAbsent(redisKey, "1", 1, TimeUnit.DAYS);
+        if (Boolean.TRUE.equals(isNewView)) {
+            postRepository.increaseViewCount(postId);  // 조회수 증가
+        }
     }
 
     /**
