@@ -28,10 +28,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -164,14 +162,11 @@ public class PostService {
             throw new BlogNotFoundException();
         }
 
-        // 게시글 내용 처리
-        String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
-
         Post post = Post.builder()
                 .userId(userProfile.getUserId())
                 .blog(blog)
                 .title(request.getTitle())
-                .content(processedContent)
+                .content(request.getContent())
                 .isPublic(request.isVisible())
                 .isCommentable(request.isCommentable())
                 .build();
@@ -202,10 +197,8 @@ public class PostService {
         // 게시글 작성자 확인
         Post post = validatePostOwnership(postId, userProfile.getUserId());
 
-        // 게시글 내용 처리
-        String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
-
-        post.updatePost(request.getTitle(), processedContent, request.isVisible(), request.isCommentable());
+        // 게시글 업데이트
+        post.updatePost(request.getTitle(), request.getContent(), request.isVisible(), request.isCommentable());
 
         postRepository.save(post);
         // 태그 업데이트
@@ -281,54 +274,6 @@ public class PostService {
         }
 
         return post;
-    }
-
-    /**
-     * HTML 내용에서 파일을 처리하고 경로를 업데이트
-     * @param content HTML 내용
-     * @param images 이미지 파일 목록
-     * @param videos 비디오 파일 목록
-     * @return content 파일 경로가 반영된 HTML 내용
-     */
-    public String processFiles(String content, List<MultipartFile> images, List<MultipartFile> videos) {
-        log.info("게시글 미디어 파일 처리 시작");
-
-        content = processImages(content, images != null ? images : List.of());
-        content = processVideos(content, videos != null ? videos : List.of());
-
-        log.info("게시글 미디어 파일 처리 완료");
-        return content;
-    }
-
-    // 이미지 파일 처리
-    private String processImages(String content, List<MultipartFile> images) {
-        return processMedia(content, images, "image");
-    }
-
-    // 비디오 파일 처리
-    private String processVideos(String content, List<MultipartFile> videos) {
-        return processMedia(content, videos, "video");
-    }
-
-    // 미디어 파일 처리
-    private String processMedia(String content, List<MultipartFile> mediaFiles, String mediaType) {
-        for (MultipartFile media : mediaFiles) {
-            try {
-                String mediaName = Objects.requireNonNull(media.getOriginalFilename());
-                if (content.contains(mediaName)) {
-                    String mediaUrl;
-                    if (mediaType.equals("image")) {
-                        mediaUrl = s3Service.uploadPostImage(media);
-                    } else {
-                        mediaUrl = s3Service.uploadPostVideo(media);
-                    }
-                    content = content.replace(mediaName, mediaUrl);  // HTML에서 파일명을 S3 URL로 교체
-                }
-            } catch (Exception e) {
-                log.error("{} 처리 중 오류가 발생했습니다: {}", mediaType, media.getOriginalFilename(), e);
-            }
-        }
-        return content;
     }
 
     /**

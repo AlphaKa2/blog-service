@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,9 +27,5 @@ public class PostUpdateRequest {
 
     private boolean visible;
     private boolean commentable;
-
-    private List<MultipartFile> images;
-    private List<MultipartFile> videos;
-
     private List<String> tagNames;
 }

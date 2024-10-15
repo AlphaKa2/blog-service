@@ -2,8 +2,10 @@ package com.alphaka.blogservice.dto.request;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
-import lombok.*;
-import org.springframework.web.multipart.MultipartFile;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
@@ -25,9 +27,5 @@ public class PostCreateRequest {
 
     private boolean visible;
     private boolean commentable;
-
-    private List<MultipartFile> images;
-    private List<MultipartFile> videos;
-
     private List<String> tagNames;
 }
