@@ -7,6 +7,7 @@ import com.alphaka.blogservice.dto.response.PostListResponse;
 import com.alphaka.blogservice.dto.response.PostResponse;
 import com.alphaka.blogservice.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,7 +27,7 @@ public class PostController {
      */
     @PostMapping
     public ApiResponse<Long> createPost(HttpServletRequest httpRequest,
-                                                @RequestBody PostCreateRequest request) {
+                                        @Valid @RequestBody PostCreateRequest request) {
         Long response = postService.createPost(httpRequest, request);
         return new ApiResponse<>(response);
     }
@@ -36,8 +37,8 @@ public class PostController {
      */
     @PutMapping("/{postId}")
     public ApiResponse<Long> updatePost(HttpServletRequest httpRequest,
-                                                @PathVariable Long postId,
-                                                @RequestBody PostUpdateRequest request) {
+                                        @PathVariable("postId") Long postId,
+                                        @Valid @RequestBody PostUpdateRequest request) {
         Long response = postService.updatePost(httpRequest, postId, request);
         return new ApiResponse<>(response);
     }
@@ -47,7 +48,7 @@ public class PostController {
      */
     @DeleteMapping("/{postId}")
     public ApiResponse<Void> deletePost(HttpServletRequest request,
-                                        @PathVariable Long postId) {
+                                        @PathVariable("postId") Long postId) {
         postService.deletePost(request, postId);
         return new ApiResponse<>(null);
     }
@@ -56,7 +57,7 @@ public class PostController {
      * 특정 블로그의 게시글 목록 조회 (페이징, 정렬 default: 최신순)
      * latest: 최신순, oldest: 오래된순, views: 조회수 많은순, likes: 좋아요 많은순
      */
-    @GetMapping("/{nickname}")
+    @GetMapping("/blog/{nickname}")
     public ApiResponse<Page<PostListResponse>> getBlogPostList(HttpServletRequest httpRequest,
                                                                @PathVariable("nickname") String nickname,
                                                                @RequestParam(value = "page", defaultValue = "1") int page,
@@ -72,7 +73,7 @@ public class PostController {
      */
     @GetMapping("/{postId}")
     public ApiResponse<PostResponse> getPostDetail(HttpServletRequest httpRequest,
-                                                   @PathVariable Long postId) {
+                                                   @PathVariable("postId") Long postId) {
         PostResponse response = postService.getPostDetails(httpRequest, postId);
         return new ApiResponse<>(response);
     }
@@ -80,10 +81,11 @@ public class PostController {
     // 정렬 기준에 따른 Sort 객체 반환
     private Sort getSort(String sort) {
         return switch (sort) {
+            case "latest" -> Sort.by(Sort.Direction.DESC, "createdAt");
             case "oldest" -> Sort.by(Sort.Direction.ASC, "createdAt");
             case "views" -> Sort.by(Sort.Direction.DESC, "viewCount");
             case "likes" -> Sort.by(Sort.Direction.DESC, "likeCount");
-            default -> Sort.by(Sort.Direction.DESC, "createdAt"); // 기본값은 최신순
+            default -> Sort.by(Sort.Direction.ASC, "createdAt"); // 기본값은 최신순
         };
     }
 }

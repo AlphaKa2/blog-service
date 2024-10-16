@@ -2,7 +2,6 @@ package com.alphaka.blogservice.service;
 
 import com.alphaka.blogservice.dto.request.UserProfile;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
-import com.alphaka.blogservice.exception.custom.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,9 +23,10 @@ public class UserProfileService {
         String userProfileImageHeader = request.getHeader("X-User-Profile");
         String userRole = request.getHeader("X-User-Role");
 
+        // 로그인하지 않은 사용자는 null 반환
         if (userIdHeader == null || userNicknameHeader == null || userProfileImageHeader == null) {
-            log.error("헤더에서 사용자 정보를 찾을 수 없습니다.");
-            throw new UserNotFoundException();
+            log.info("로그인하지 않은 사용자");
+            return null;
         }
 
         try {

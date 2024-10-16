@@ -11,9 +11,10 @@ public interface PostListProjection {
     Long getPostId();
     String getTitle();
     String getContent();
-    int getLikeCount();
-    int getCommentCount();
-    int getViewCount();
+    Long getLikeCount();
+    Long getCommentCount();
+    Integer getViewCount();
+    boolean getVisible();
+    boolean getCommentable();
     LocalDateTime getCreatedAt();
-    List<String> getTags();
 }
