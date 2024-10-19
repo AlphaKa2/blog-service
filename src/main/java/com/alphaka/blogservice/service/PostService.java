@@ -156,8 +156,8 @@ public class PostService {
 
         postRepository.save(post);
 
-        // 태그 처리
-        tagService.updateTagsForPost(post, request.getTagNames());
+        // 태그 연결
+        tagService.addTagsToNewPost(post, request.getTagNames());
 
         log.info("게시글 작성 완료 - Post ID: {}", post.getId());
         return post.getId();
@@ -183,7 +183,7 @@ public class PostService {
         postRepository.save(post);
 
         // 태그 업데이트
-        tagService.updateTagsForPost(post, request.getTagNames());
+        tagService.updateTagsForExistingPost(post, request.getTagNames());
 
         log.info("게시글 수정 완료 - Post ID: {}", post.getId());
         return post.getId();
