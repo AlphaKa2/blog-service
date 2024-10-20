@@ -1,7 +1,6 @@
 package com.alphaka.blogservice.projection;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * 게시글 목록 조회용 프로젝션
@@ -12,7 +11,7 @@ public interface PostListProjection {
     String getTitle();
     String getContent();
     Long getLikeCount();
-    Long getCommentCount();
+    Integer getCommentCount();
     Integer getViewCount();
     boolean getVisible();
     boolean getCommentable();

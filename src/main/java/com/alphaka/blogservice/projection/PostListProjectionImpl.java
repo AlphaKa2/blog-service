@@ -16,13 +16,13 @@ public class PostListProjectionImpl implements PostListProjection{
     private String title;
     private String content;
     private Long likeCount;
-    private Long commentCount;
+    private Integer commentCount;
     private Integer viewCount;
     private boolean visible;
     private boolean commentable;
     private LocalDateTime createdAt;
 
-    public PostListProjectionImpl(Long postId, String title, String content, Long likeCount, Long commentCount, Integer viewCount,
+    public PostListProjectionImpl(Long postId, String title, String content, Long likeCount, Integer commentCount, Integer viewCount,
                                   boolean visible, boolean commentable, LocalDateTime createdAt) {
         this.postId = postId;
         this.title = title;
@@ -56,7 +56,7 @@ public class PostListProjectionImpl implements PostListProjection{
     }
 
     @Override
-    public Long getCommentCount() {
+    public Integer getCommentCount() {
         return commentCount;
     }
 

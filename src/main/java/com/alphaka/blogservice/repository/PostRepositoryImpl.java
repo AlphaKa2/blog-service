@@ -36,7 +36,6 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
     public Page<PostListProjection> findPostsByBlogId(Long blogId, Long blogOwnerId, boolean isOwner, Pageable pageable) {
         QPost post = QPost.post;
         QLike like = QLike.like;
-        QComment comment = QComment.comment;
         QPostTag postTag = QPostTag.postTag;
 
         // 좋아요 수 서브쿼리
@@ -45,12 +44,6 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .from(like)
                 .where(like.post.id.eq(post.id));
 
-        // 댓글 수 서브쿼리
-        Expression<Long> commentCount = JPAExpressions
-                .select(comment.count())
-                .from(comment)
-                .where(comment.post.id.eq(post.id));
-
         // 기본 쿼리
         JPAQuery<PostListProjectionImpl> query = queryFactory
                 .selectDistinct(Projections.constructor(PostListProjectionImpl.class,
@@ -58,7 +51,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                         post.title.as("title"),
                         post.content.as("content"),
                         likeCount,  // 서브쿼리로 조회된 좋아요 수
-                        commentCount,  // 서브쿼리로 조회된 댓글 수
+                        post.comments.size().as("commentCount"),
                         post.viewCount.as("viewCount"),
                         post.isPublic.as("visible"),
                         post.isCommentable.as("commentable"),
@@ -138,6 +131,35 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .fetch();
     }
 
+    // 인기 게시글 목록 (좋아요 순 9개 조회)
+    @Override
+    public List<PostListProjectionImpl> findPopularPosts() {
+        QPost post = QPost.post;
+        QLike like = QLike.like;
+
+        List<PostListProjectionImpl> response = queryFactory
+                .select(Projections.constructor(PostListProjectionImpl.class,
+                        post.id.as("postId"),
+                        post.title.as("title"),
+                        post.content.as("content"),
+                        like.countDistinct().as("likeCount"),  // 좋아요 수를 JOIN을 통해 계산
+                        post.comments.size().as("commentCount"),
+                        post.viewCount.as("viewCount"),
+                        post.isPublic.as("visible"),
+                        post.isCommentable.as("commentable"),
+                        post.createdAt.as("createdAt")
+                ))
+                .from(post)
+                .leftJoin(like).on(like.post.eq(post))  // 좋아요와 조인
+                .where(post.isPublic.isTrue())          // 공개된 게시글만
+                .groupBy(post.id, post.title, post.content, post.viewCount, post.isPublic, post.isCommentable, post.createdAt)
+                .orderBy(like.count().desc())           // 좋아요 수로 정렬
+                .limit(9)                               // 상위 9개만 가져옴
+                .fetch();
+
+
+        return response;
+    }
     // 정렬 기준 적용
     private void applySorting(JPAQuery<?> query, Pageable pageable) {
         Sort sort = pageable.getSort();

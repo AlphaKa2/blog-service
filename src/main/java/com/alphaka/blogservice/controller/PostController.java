@@ -15,6 +15,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
@@ -75,6 +77,16 @@ public class PostController {
     public ApiResponse<PostResponse> getPostDetail(HttpServletRequest httpRequest,
                                                    @PathVariable("postId") Long postId) {
         PostResponse response = postService.getPostDetails(httpRequest, postId);
+        return new ApiResponse<>(response);
+    }
+
+    /**
+     * 최근 인기 게시글 목록 추천
+     * @return
+     */
+    @GetMapping("/popular")
+    public ApiResponse<List<PostListResponse>> getPopularPosts() {
+        List<PostListResponse> response = postService.getPopularPosts();
         return new ApiResponse<>(response);
     }
 

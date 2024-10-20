@@ -2,6 +2,7 @@ package com.alphaka.blogservice.repository;
 
 import com.alphaka.blogservice.projection.PostDetailProjection;
 import com.alphaka.blogservice.projection.PostListProjection;
+import com.alphaka.blogservice.projection.PostListProjectionImpl;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -19,4 +20,7 @@ public interface PostRepositoryCustom {
 
     // 태그 조회 메서드 추가
     List<String> findTagsByPostId(Long postId);
+
+    // 인기 게시글 조회 (좋아요순 9개)
+    List<PostListProjectionImpl> findPopularPosts();
 }
