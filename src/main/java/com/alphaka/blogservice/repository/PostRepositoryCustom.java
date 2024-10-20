@@ -16,7 +16,7 @@ public interface PostRepositoryCustom {
     Page<PostListProjection> findPostsByBlogId(Long blogId, Long blogOwnerId, boolean isOwner, Pageable pageable);
 
     // 게시글 ID로 게시글 상세 조회
-    PostDetailProjection findPostDetailById(Long postId);
+    PostDetailProjection findPostDetailById(Long postId, Long userId);
 
     // 태그 조회 메서드 추가
     List<String> findTagsByPostId(Long postId);

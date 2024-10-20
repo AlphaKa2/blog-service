@@ -91,19 +91,22 @@ public class PostService {
      * @param httpRequest HTTP 요청
      * @return PostDetailResponse 게시글 상세 정보
      */
+    @Transactional
     public PostResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
-        // 게시글 조회
-        PostDetailProjectionImpl projection = (PostDetailProjectionImpl) postRepository.findPostDetailById(postId);
+        // 햔제 사용자 정보 조회
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
+
+        // 게시글 상세 정보 조회
+        PostDetailProjectionImpl projection = (PostDetailProjectionImpl) postRepository.findPostDetailById(postId, currentUser.getUserId());
         if (projection == null) {
             log.error("게시글을 찾을 수 없습니다 - Post ID: {}", postId);
             throw new PostNotFoundException();
         }
 
-        // 작성자와 현재 사용자 정보 조회
+        // 작성자 정보 조회
         UserInfo author = userClient.findUserById(projection.getAuthorId()).getData();
-        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
 
         // 비공개 게시글 여부 확인 및 처리
         if (!projection.getIsPublic() && !isAuthor(currentUser, author)) {
@@ -113,13 +116,8 @@ public class PostService {
         // 태그 조회
         List<String> tags = postRepository.findTagsByPostId(postId);
 
-        // 요청한 사용자 좋아요 여부 확인
-        boolean isLiked = false;
-        if (currentUser != null) {
-            isLiked = likeRepository.existsByUserIdAndPost(currentUser.getUserId(),
-                    postRepository.findById(postId).orElseThrow(PostNotFoundException::new));
-        }
-        PostResponse response = mapToPostResponse(projection, author, tags, isLiked);
+        // 응답 생성
+        PostResponse response = mapToPostResponse(projection, author, tags);
 
         // 조회수 증가
         increaseViewCount(postId, httpRequest);
@@ -316,9 +314,8 @@ public class PostService {
      * 게시글 상세 조회 응답으로 변환
      * @param projection 게시글 Projection
      * @param author 작성자 정보
-     * @param tags 태그 목록
      */
-    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags, boolean isLiked) {
+    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags) {
         return PostResponse.builder()
                 .postId(projection.getPostId())
                 .author(author.getNickname())
@@ -327,7 +324,7 @@ public class PostService {
                 .likeCount(projection.getLikeCount())
                 .viewCount(projection.getViewCount())
                 .tags(tags)
-                .isLike(isLiked)
+                .isLike(projection.getIsLiked())
                 .createdAt(projection.getCreatedAt())
                 .build();
     }

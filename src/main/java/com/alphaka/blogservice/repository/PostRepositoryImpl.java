@@ -1,6 +1,9 @@
 package com.alphaka.blogservice.repository;
 
-import com.alphaka.blogservice.entity.*;
+import com.alphaka.blogservice.entity.QLike;
+import com.alphaka.blogservice.entity.QPost;
+import com.alphaka.blogservice.entity.QPostTag;
+import com.alphaka.blogservice.entity.QTag;
 import com.alphaka.blogservice.projection.PostDetailProjection;
 import com.alphaka.blogservice.projection.PostDetailProjectionImpl;
 import com.alphaka.blogservice.projection.PostListProjection;
@@ -91,23 +94,34 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
     // 게시글 ID로 게시글 상세 조회
     @Override
-    public PostDetailProjection findPostDetailById(Long postId) {
+    public PostDetailProjection findPostDetailById(Long postId, Long userId) {
         QPost post = QPost.post;
         QLike like = QLike.like;
+
+        // 좋아요 수 서브쿼리
+        Expression<Long> likeCount = JPAExpressions
+                .select(like.count())
+                .from(like)
+                .where(like.post.id.eq(post.id));
+
+        // 현재 사용자의 좋아요 여부
+        Expression<Boolean> isLiked = JPAExpressions
+                .selectOne()
+                .from(like)
+                .where(like.post.id.eq(postId).and(like.userId.eq(userId)))
+                .exists();
 
         // 게시글 상세 정보 조회 (tags 제외)
         PostDetailProjectionImpl response = queryFactory
                 .select(Projections.constructor(PostDetailProjectionImpl.class,
                         post.id.as("postId"),
                         post.userId.as("authorId"),
-                        post.title.as("title"),
-                        post.content.as("content"),
-                        // 좋아요 수 조회 (서브쿼리)
-                        JPAExpressions.select(like.count())
-                                .from(like)
-                                .where(like.post.id.eq(post.id)),
-                        post.viewCount.as("viewCount"),
-                        post.isPublic.as("isPublic"),
+                        post.title,
+                        post.content,
+                        likeCount,
+                        post.viewCount,
+                        post.isPublic,
+                        isLiked,
                         post.createdAt.as("createdAt")
                 ))
                 .from(post)
