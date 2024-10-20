@@ -40,7 +40,7 @@ public class TagService {
         log.info("블로그의 태그 목록 조회 시작 - Nickname: {}", nickname);
 
         // 요청 받은 닉네임의 사용자 ID 조회
-        UserInfo user = userClient.findUser(nickname).getData();
+        UserInfo user = userClient.findUserByNickname(nickname).getData();
 
         // 해당 사용자의 블로그 조회
         Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
