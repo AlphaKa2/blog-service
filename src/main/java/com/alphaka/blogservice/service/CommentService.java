@@ -60,7 +60,7 @@ public class CommentService {
         // 부모 댓글을 DTO로 변환하면서 작성자 정보 추가
         List<CommentResponse> parentComments = parentProjections.stream()
                 .map(parentComment -> {
-                    UserInfo author = userClient.findUser(parentComment.getAuthorId()).getData();
+                    UserInfo author = userClient.findUserById(parentComment.getAuthorId()).getData();
 
                     // 자식 댓글 재귀적으로 조회
                     List<CommentResponse> childComments = getChildrenComments(
@@ -95,7 +95,7 @@ public class CommentService {
         // 자식 댓글들을 재귀적으로 조회하여 대댓글 포함
         return childProjections.stream()
                 .map(childComment -> {
-                    UserInfo childAuthor = userClient.findUser(childComment.getAuthorId()).getData();
+                    UserInfo childAuthor = userClient.findUserById(childComment.getAuthorId()).getData();
                     List<CommentResponse> grandchildren = getChildrenComments(childComment.getCommentId(), includePrivateComments, userId); // 대댓글 조회
                     // 좋아요 여부 확인
                     boolean isLiked = likeRepository.existsByUserIdAndComment(

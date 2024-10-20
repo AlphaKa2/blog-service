@@ -14,6 +14,7 @@ import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
 import com.alphaka.blogservice.projection.PostDetailProjectionImpl;
 import com.alphaka.blogservice.projection.PostListProjection;
+import com.alphaka.blogservice.projection.PostListProjectionImpl;
 import com.alphaka.blogservice.repository.BlogRepository;
 import com.alphaka.blogservice.repository.LikeRepository;
 import com.alphaka.blogservice.repository.PostRepository;
@@ -60,7 +61,7 @@ public class PostService {
 
         // 현재 요청한 사용자와 블로그 소유자 확인
         UserProfile currentUser = userProfileService.getUserProfileFromHeader(request);
-        UserInfo blogOwner = userClient.findUser(nickname).getData();
+        UserInfo blogOwner = userClient.findUserByNickname(nickname).getData();
         Blog blog = blogRepository.findByUserId(blogOwner.getUserId());
         if (blog == null) {
             log.error("블로그를 찾을 수 없습니다 - Nickname: {}", nickname);
@@ -90,19 +91,22 @@ public class PostService {
      * @param httpRequest HTTP 요청
      * @return PostDetailResponse 게시글 상세 정보
      */
+    @Transactional
     public PostResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
-        // 게시글 조회
-        PostDetailProjectionImpl projection = (PostDetailProjectionImpl) postRepository.findPostDetailById(postId);
+        // 햔제 사용자 정보 조회
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
+
+        // 게시글 상세 정보 조회
+        PostDetailProjectionImpl projection = (PostDetailProjectionImpl) postRepository.findPostDetailById(postId, currentUser.getUserId());
         if (projection == null) {
             log.error("게시글을 찾을 수 없습니다 - Post ID: {}", postId);
             throw new PostNotFoundException();
         }
 
-        // 작성자와 현재 사용자 정보 조회
-        UserInfo author = userClient.findUser(projection.getAuthorId()).getData();
-        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
+        // 작성자 정보 조회
+        UserInfo author = userClient.findUserById(projection.getAuthorId()).getData();
 
         // 비공개 게시글 여부 확인 및 처리
         if (!projection.getIsPublic() && !isAuthor(currentUser, author)) {
@@ -112,19 +116,36 @@ public class PostService {
         // 태그 조회
         List<String> tags = postRepository.findTagsByPostId(postId);
 
-        // 요청한 사용자 좋아요 여부 확인
-        boolean isLiked = false;
-        if (currentUser != null) {
-            isLiked = likeRepository.existsByUserIdAndPost(currentUser.getUserId(),
-                    postRepository.findById(postId).orElseThrow(PostNotFoundException::new));
-        }
-        PostResponse response = mapToPostResponse(projection, author, tags, isLiked);
+        // 응답 생성
+        PostResponse response = mapToPostResponse(projection, author, tags);
 
         // 조회수 증가
         increaseViewCount(postId, httpRequest);
 
         log.info("게시글 상세 조회 완료 - Post ID: {}", postId);
         return response;
+    }
+
+    /**
+     * 최근 인기 게시글 목록 추천 (좋아요 많은순 9개)
+     * @return List<PostListResponse> 게시글 정보 목록
+     */
+    public List<PostListResponse> getPopularPosts() {
+        log.info("최근 인기 게시글 목록 조회");
+
+        // 전체 게시글 중 좋아요 많은 순으로 9개 조회
+        List<PostListProjectionImpl> postListProjections = postRepository.findPopularPosts();
+
+        // PostListProjection을 PostListResponse로 변환
+        List<PostListResponse> postListResponses = postListProjections.stream()
+                .map(postProjection -> {
+                    List<String> tags = postRepository.findTagsByPostId(postProjection.getPostId());
+                    return mapToPostListResponse(postProjection, tags);
+                })
+                .toList();
+
+        log.info("최근 인기 게시글 목록 조회 완료");
+        return postListResponses;
     }
 
     /**
@@ -282,7 +303,7 @@ public class PostService {
                 .contentSnippet(extractContentSnippet(projection.getContent()))
                 .representativeImage(extractFirstImage(projection.getContent()))
                 .likeCount(projection.getLikeCount().intValue())  // int로 변환
-                .commentCount(projection.getCommentCount().intValue())  // int로 변환
+                .commentCount(projection.getCommentCount())
                 .viewCount(projection.getViewCount())
                 .tags(tags)  // 태그 리스트 설정
                 .createdAt(projection.getCreatedAt().toString())  // 날짜 형식 맞춤
@@ -293,9 +314,8 @@ public class PostService {
      * 게시글 상세 조회 응답으로 변환
      * @param projection 게시글 Projection
      * @param author 작성자 정보
-     * @param tags 태그 목록
      */
-    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags, boolean isLiked) {
+    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags) {
         return PostResponse.builder()
                 .postId(projection.getPostId())
                 .author(author.getNickname())
@@ -304,7 +324,7 @@ public class PostService {
                 .likeCount(projection.getLikeCount())
                 .viewCount(projection.getViewCount())
                 .tags(tags)
-                .isLike(isLiked)
+                .isLike(projection.getIsLiked())
                 .createdAt(projection.getCreatedAt())
                 .build();
     }

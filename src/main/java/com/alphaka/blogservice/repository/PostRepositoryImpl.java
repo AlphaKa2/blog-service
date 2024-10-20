@@ -1,6 +1,9 @@
 package com.alphaka.blogservice.repository;
 
-import com.alphaka.blogservice.entity.*;
+import com.alphaka.blogservice.entity.QLike;
+import com.alphaka.blogservice.entity.QPost;
+import com.alphaka.blogservice.entity.QPostTag;
+import com.alphaka.blogservice.entity.QTag;
 import com.alphaka.blogservice.projection.PostDetailProjection;
 import com.alphaka.blogservice.projection.PostDetailProjectionImpl;
 import com.alphaka.blogservice.projection.PostListProjection;
@@ -36,7 +39,6 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
     public Page<PostListProjection> findPostsByBlogId(Long blogId, Long blogOwnerId, boolean isOwner, Pageable pageable) {
         QPost post = QPost.post;
         QLike like = QLike.like;
-        QComment comment = QComment.comment;
         QPostTag postTag = QPostTag.postTag;
 
         // 좋아요 수 서브쿼리
@@ -45,12 +47,6 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .from(like)
                 .where(like.post.id.eq(post.id));
 
-        // 댓글 수 서브쿼리
-        Expression<Long> commentCount = JPAExpressions
-                .select(comment.count())
-                .from(comment)
-                .where(comment.post.id.eq(post.id));
-
         // 기본 쿼리
         JPAQuery<PostListProjectionImpl> query = queryFactory
                 .selectDistinct(Projections.constructor(PostListProjectionImpl.class,
@@ -58,7 +54,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                         post.title.as("title"),
                         post.content.as("content"),
                         likeCount,  // 서브쿼리로 조회된 좋아요 수
-                        commentCount,  // 서브쿼리로 조회된 댓글 수
+                        post.comments.size().as("commentCount"),
                         post.viewCount.as("viewCount"),
                         post.isPublic.as("visible"),
                         post.isCommentable.as("commentable"),
@@ -98,23 +94,34 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
     // 게시글 ID로 게시글 상세 조회
     @Override
-    public PostDetailProjection findPostDetailById(Long postId) {
+    public PostDetailProjection findPostDetailById(Long postId, Long userId) {
         QPost post = QPost.post;
         QLike like = QLike.like;
+
+        // 좋아요 수 서브쿼리
+        Expression<Long> likeCount = JPAExpressions
+                .select(like.count())
+                .from(like)
+                .where(like.post.id.eq(post.id));
+
+        // 현재 사용자의 좋아요 여부
+        Expression<Boolean> isLiked = JPAExpressions
+                .selectOne()
+                .from(like)
+                .where(like.post.id.eq(postId).and(like.userId.eq(userId)))
+                .exists();
 
         // 게시글 상세 정보 조회 (tags 제외)
         PostDetailProjectionImpl response = queryFactory
                 .select(Projections.constructor(PostDetailProjectionImpl.class,
                         post.id.as("postId"),
                         post.userId.as("authorId"),
-                        post.title.as("title"),
-                        post.content.as("content"),
-                        // 좋아요 수 조회 (서브쿼리)
-                        JPAExpressions.select(like.count())
-                                .from(like)
-                                .where(like.post.id.eq(post.id)),
-                        post.viewCount.as("viewCount"),
-                        post.isPublic.as("isPublic"),
+                        post.title,
+                        post.content,
+                        likeCount,
+                        post.viewCount,
+                        post.isPublic,
+                        isLiked,
                         post.createdAt.as("createdAt")
                 ))
                 .from(post)
@@ -138,6 +145,35 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .fetch();
     }
 
+    // 인기 게시글 목록 (좋아요 순 9개 조회)
+    @Override
+    public List<PostListProjectionImpl> findPopularPosts() {
+        QPost post = QPost.post;
+        QLike like = QLike.like;
+
+        List<PostListProjectionImpl> response = queryFactory
+                .select(Projections.constructor(PostListProjectionImpl.class,
+                        post.id.as("postId"),
+                        post.title.as("title"),
+                        post.content.as("content"),
+                        like.countDistinct().as("likeCount"),  // 좋아요 수를 JOIN을 통해 계산
+                        post.comments.size().as("commentCount"),
+                        post.viewCount.as("viewCount"),
+                        post.isPublic.as("visible"),
+                        post.isCommentable.as("commentable"),
+                        post.createdAt.as("createdAt")
+                ))
+                .from(post)
+                .leftJoin(like).on(like.post.eq(post))  // 좋아요와 조인
+                .where(post.isPublic.isTrue())          // 공개된 게시글만
+                .groupBy(post.id, post.title, post.content, post.viewCount, post.isPublic, post.isCommentable, post.createdAt)
+                .orderBy(like.count().desc())           // 좋아요 수로 정렬
+                .limit(9)                               // 상위 9개만 가져옴
+                .fetch();
+
+
+        return response;
+    }
     // 정렬 기준 적용
     private void applySorting(JPAQuery<?> query, Pageable pageable) {
         Sort sort = pageable.getSort();

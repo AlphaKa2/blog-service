@@ -19,10 +19,11 @@ public class PostDetailProjectionImpl implements PostDetailProjection {
     private Long likeCount;
     private Integer viewCount;
     private Boolean isPublic;
+    private Boolean isLiked;
     private LocalDateTime createdAt;
 
     public PostDetailProjectionImpl(Long postId, Long authorId, String title, String content, Long likeCount,
-                                    Integer viewCount, Boolean isPublic, LocalDateTime createdAt) {
+                                    Integer viewCount, Boolean isPublic, Boolean isLiked, LocalDateTime createdAt) {
         this.postId = postId;
         this.authorId = authorId;
         this.title = title;
@@ -30,6 +31,7 @@ public class PostDetailProjectionImpl implements PostDetailProjection {
         this.likeCount = likeCount;
         this.viewCount = viewCount;
         this.isPublic = isPublic;
+        this.isLiked = isLiked;
         this.createdAt = createdAt;
     }
 
@@ -66,6 +68,11 @@ public class PostDetailProjectionImpl implements PostDetailProjection {
     @Override
     public Boolean getIsPublic() {
         return isPublic;
+    }
+
+    @Override
+    public Boolean getIsLiked() {
+        return isLiked;
     }
 
     @Override

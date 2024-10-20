@@ -10,5 +10,6 @@ public interface PostDetailProjection {
     Long getLikeCount();
     Integer getViewCount();
     Boolean getIsPublic();
+    Boolean getIsLiked();
     LocalDateTime getCreatedAt();
 }
