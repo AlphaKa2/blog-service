@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PostTagRepository extends JpaRepository<PostTag, Long> {
+public interface PostTagRepository extends JpaRepository<PostTag, Long>, PostTagRepositoryCustom {
 
     // 게시글을 사용하여 게시글 태그 조회
     List<PostTag> findByPost(Post post);

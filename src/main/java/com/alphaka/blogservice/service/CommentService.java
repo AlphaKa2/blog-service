@@ -5,15 +5,13 @@ import com.alphaka.blogservice.dto.request.CommentCreateRequest;
 import com.alphaka.blogservice.dto.request.CommentUpdateRequest;
 import com.alphaka.blogservice.dto.request.UserInfo;
 import com.alphaka.blogservice.dto.request.UserProfile;
-import com.alphaka.blogservice.dto.response.ApiResponse;
 import com.alphaka.blogservice.dto.response.CommentResponse;
 import com.alphaka.blogservice.entity.Comment;
 import com.alphaka.blogservice.entity.Post;
-import com.alphaka.blogservice.exception.custom.CommentNotFoundException;
-import com.alphaka.blogservice.exception.custom.ParentCommentNotFoundException;
-import com.alphaka.blogservice.exception.custom.PostNotFoundException;
-import com.alphaka.blogservice.exception.custom.UnauthorizedException;
+import com.alphaka.blogservice.exception.custom.*;
+import com.alphaka.blogservice.projection.CommentProjectionImpl;
 import com.alphaka.blogservice.repository.CommentRepository;
+import com.alphaka.blogservice.repository.LikeRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -34,62 +32,83 @@ public class CommentService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final UserProfileService userProfileService;
+    private final LikeRepository likeRepository;
 
     /**
      * 특정 게시글의 댓글 조회
+     * @param httpRequest HTTP 요청
      * @param postId 게시글 ID
      * @return List<CommentDetailResponse> 댓글 목록
      */
-    public List<CommentResponse> getCommentsForPost(Long postId) {
+    public List<CommentResponse> getCommentsForPost(HttpServletRequest httpRequest, Long postId) {
         log.info("특정 게시글의 댓글 조회 - Post ID: {}", postId);
+
+        // 현재 사용자 확인
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
 
         // 게시글 존재 여부 확인
         Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
 
-        // 부모 댓글 조회 (부모 댓글은 parent가 null인 댓글)
-        List<Comment> parentComments = commentRepository.findByPostAndParentIsNull(post);
+        // 게시글 작성자인지 확인
+        boolean isPostAuthor = currentUser != null && currentUser.getUserId().equals(post.getUserId());
 
-        // 부모 댓글을 DTO로 변환 및 자식 댓글 포함
-        List<CommentResponse> response = parentComments.stream()
-                .filter(Comment::isPublic)  // 공개된 댓글만 필터링
-                .map(this::mapToResponse)
+        // 부모 댓글 조회
+        List<CommentProjectionImpl> parentProjections = commentRepository.findParentCommentsByPostId(
+                postId, isPostAuthor, currentUser != null ? currentUser.getUserId() : null
+        );
+
+        // 부모 댓글을 DTO로 변환하면서 작성자 정보 추가
+        List<CommentResponse> parentComments = parentProjections.stream()
+                .map(parentComment -> {
+                    UserInfo author = userClient.findUserById(parentComment.getAuthorId()).getData();
+
+                    // 자식 댓글 재귀적으로 조회
+                    List<CommentResponse> childComments = getChildrenComments(
+                            parentComment.getCommentId(), isPostAuthor, currentUser != null ? currentUser.getUserId() : null
+                    );
+
+                    // 좋아요 여부 확인
+                    boolean isLiked = currentUser != null && likeRepository.existsByUserIdAndComment(
+                            currentUser.getUserId(), commentRepository.findById(parentComment.getCommentId()).orElseThrow(CommentNotFoundException::new)
+                    );
+
+                    // 부모 댓글과 자식 댓글들을 함께 매핑
+                    return mapToCommentResponse(parentComment, author, childComments, isLiked);
+                })
                 .collect(Collectors.toList());
 
-        log.info("댓글 조회 완료 - Post ID: {}, 댓글 수: {}", postId, response.size());
-        return response;
+        log.info("특정 게시글의 댓글 조회 완료 - Post ID: {}", postId);
+        return parentComments;
     }
 
     /**
-     * 댓글 엔티티를 DTO로 변환하고 자식 댓글 포함
-     * @param comment 부모 댓글 엔티티
-     * @return CommentDetailResponse 부모 및 자식 댓글 정보
+     * 부모 댓글에 대한 자식 댓글 재귀적으로 조회
+     * @param parentId 부모 댓글 ID
+     * @param includePrivateComments 비공개 댓글 포함 여부
+     * @param userId 현재 로그인한 사용자 ID
+     * @return 자식 댓글 목록
      */
-    private CommentResponse mapToResponse(Comment comment) {
-        // 사용자 프로필 가져오기
-        ApiResponse<UserInfo> response = userClient.findUser(comment.getUserId());
-        UserInfo user = response.getData();
+    private List<CommentResponse> getChildrenComments(Long parentId, boolean includePrivateComments, Long userId) {
+        // 부모 댓글에 대한 자식 댓글 조회
+        List<CommentProjectionImpl> childProjections = commentRepository.findChildCommentsByParentId(parentId, includePrivateComments, userId);
 
-        // 자식 댓글 재귀적으로 처리
-        List<CommentResponse> children = comment.getChildren().stream()
-                .filter(Comment::isPublic)  // 공개된 자식 댓글만 필터링
-                .map(this::mapToResponse)   // 자식 댓글을 재귀적으로 처리
+        // 자식 댓글들을 재귀적으로 조회하여 대댓글 포함
+        return childProjections.stream()
+                .map(childComment -> {
+                    UserInfo childAuthor = userClient.findUserById(childComment.getAuthorId()).getData();
+                    List<CommentResponse> grandchildren = getChildrenComments(childComment.getCommentId(), includePrivateComments, userId); // 대댓글 조회
+                    // 좋아요 여부 확인
+                    boolean isLiked = likeRepository.existsByUserIdAndComment(
+                            userId, commentRepository.findById(childComment.getCommentId()).orElseThrow(CommentNotFoundException::new)
+                    );
+                    return mapToCommentResponse(childComment, childAuthor, grandchildren, isLiked);  // 자식 댓글과 대댓글 함께 매핑
+                })
                 .collect(Collectors.toList());
-
-        // 부모 댓글 정보와 자식 댓글 리스트를 포함한 DTO 생성
-        return CommentResponse.builder()
-                .commentId(comment.getId())
-                .authorNickname(user.getNickname())
-                .authorProfileImage(user.getProfileImage())
-                .content(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .likeCount(comment.getLikes().size())  // 좋아요 수
-                .children(children)  // 자식 댓글 리스트
-                .build();
     }
 
     /**
      * 댓글 작성
-     * @param httpRequest HttpServletRequest
+     * @param httpRequest HTTP 요청
      * @param request 댓글 작성 요청
      * @return CommentResponse 작성된 댓글 응답
      */
@@ -97,10 +116,14 @@ public class CommentService {
     public Long createComment(HttpServletRequest httpRequest, CommentCreateRequest request) {
         log.info("댓글 작성 요청 - Post ID: {}", request.getPostId());
 
-        // 헤더에서 사용자 정보 추출
-        UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
+        // 현재 사용자 확인
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
+        if (currentUser == null) {
+            log.error("로그인 해야 댓글을 작성할 수 있습니다.");
+            throw new SignInRequiredException();
+        }
 
-        // 게시글 존재 여부 확인
+        // 댓글 작성하려는 게시글 존재 확인
         Post post = postRepository.findById(request.getPostId()).orElseThrow(PostNotFoundException::new);
 
         // 부모 댓글이 있을 경우 확인
@@ -111,7 +134,7 @@ public class CommentService {
 
         // 댓글 생성
         Comment comment = Comment.builder()
-                .userId(userProfile.getUserId())
+                .userId(currentUser.getUserId())
                 .post(post)
                 .content(request.getContent())
                 .parent(parentComment)
@@ -119,14 +142,14 @@ public class CommentService {
                 .build();
 
         commentRepository.save(comment);
-        log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
 
+        log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
         return comment.getId();
     }
 
     /**
      * 댓글 수정
-     * @param httpRequest HttpServletRequest
+     * @param httpRequest HTTP 요청
      * @param commentId 댓글 ID
      * @param request 댓글 수정 요청
      * @return CommentResponse 수정된 댓글 응답
@@ -136,10 +159,10 @@ public class CommentService {
         log.info("댓글 수정 요청 - Comment ID: {}", commentId);
 
         // 헤더에서 사용자 정보 추출
-        UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
 
         // 댓글 수정 권한 확인
-        Comment comment = validateCommentOwnership(commentId, userProfile.getUserId());
+        Comment comment = validateCommentOwnership(commentId, currentUser.getUserId());
 
         // 댓글 수정
         comment.updateComment(request.getContent(), request.isPublic());
@@ -151,7 +174,7 @@ public class CommentService {
 
     /**
      * 댓글 삭제
-     * @param httpRequest HttpServletRequest
+     * @param httpRequest HTTP 요청
      * @param commentId   댓글 ID
      */
     @Transactional
@@ -159,14 +182,35 @@ public class CommentService {
         log.info("댓글 삭제 요청 - Comment ID: {}", commentId);
 
         // 헤더에서 사용자 정보 추출
-        UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
 
         // 댓글 삭제 권한 확인
-        Comment comment = validateCommentOwnership(commentId, userProfile.getUserId());
+        Comment comment = validateCommentOwnership(commentId, currentUser.getUserId());
 
         // 댓글 삭제
         commentRepository.delete(comment);
         log.info("댓글 삭제 완료 - Comment ID: {}", commentId);
+    }
+
+    /**
+     * CommentProjectionImpl -> CommentResponse로 변환하는 매핑 함수
+     * @param commentProjection 댓글 프로젝션
+     * @param author 작성자 정보
+     * @param children 자식 댓글 목록
+     * @return 댓글 응답 DTO
+     */
+    private CommentResponse mapToCommentResponse(CommentProjectionImpl commentProjection, UserInfo author,
+                                                 List<CommentResponse> children, boolean isLiked) {
+        return CommentResponse.builder()
+                .commentId(commentProjection.getCommentId())
+                .authorNickname(author.getNickname())
+                .authorProfileImage(author.getProfileImage())
+                .content(commentProjection.getContent())
+                .likeCount(commentProjection.getLikeCount().intValue())
+                .children(children)  // 자식 댓글 리스트
+                .isLiked(isLiked)
+                .createdAt(commentProjection.getCreatedAt())
+                .build();
     }
 
     /**

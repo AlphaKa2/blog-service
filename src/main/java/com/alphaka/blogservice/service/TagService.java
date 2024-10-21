@@ -16,8 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,7 +40,7 @@ public class TagService {
         log.info("블로그의 태그 목록 조회 시작 - Nickname: {}", nickname);
 
         // 요청 받은 닉네임의 사용자 ID 조회
-        UserInfo user = userClient.findUser(nickname).getData();
+        UserInfo user = userClient.findUserByNickname(nickname).getData();
 
         // 해당 사용자의 블로그 조회
         Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
@@ -61,13 +62,68 @@ public class TagService {
     }
 
     /**
-     * 게시글의 태그 정보를 업데이트
+     * 게시글 생성 시 태그를 처리
      * @param post 게시글
-     * @param tagNames 태그 목록
+     * @param tagNames 태그 이름 목록
      */
     @Transactional
-    public void updateTagsForPost(Post post, List<String> tagNames) {
-        log.info("게시글의 태그 업데이트 시작 - Post ID: {}", post.getId());
+    public void addTagsToNewPost(Post post, List<String> tagNames) {
+        log.info("게시글 생성 시 태그 추가 시작 - Post ID: {}", post.getId());
+
+        // 태그를 조회하거나 없으면 생성
+        List<Tag> tags = findOrCreateTags(tagNames);
+
+        // PostTag 엔티티 리스트 생성
+        List<PostTag> postTags = tags.stream()
+                .map(tag -> PostTag.builder()
+                        .post(post)
+                        .tag(tag)
+                        .build())
+                .toList();
+
+        // PostTag를 배치로 저장
+        postTagRepository.batchInsert(postTags);
+
+        log.info("게시글 생성 시 태그 추가 완료 - Post ID: {}", post.getId());
+    }
+
+    /**
+     * 태그 이름 목록을 조회하거나 없으면 생성
+     * @param tagNames 태그 이름 목록
+     * @return 태그 엔티티 목록
+     */
+    private List<Tag> findOrCreateTags(List<String> tagNames) {
+        // 주어진 태그 이름으로 기존 태그 조회
+        List<Tag> existingTags = tagRepository.findByTagNameIn(tagNames);
+
+        // 기존 태그 이름 목록 추출
+        Set<String> existingTagNames = existingTags.stream()
+                .map(Tag::getTagName)
+                .collect(Collectors.toSet());
+
+        // 새로 생성해야 하는 태그 이름 목록
+        List<Tag> newTags = tagNames.stream()
+                .filter(tagName -> !existingTagNames.contains(tagName))
+                .map(tagName -> Tag.builder().tagName(tagName).build())
+                .toList();
+
+        // 새로운 태그를 배치로 저장
+        if (!newTags.isEmpty()) {
+            tagRepository.batchInsert(newTags);
+            existingTags.addAll(newTags);
+        }
+
+        return existingTags;
+    }
+
+    /**
+     * 게시글 업데이트 시 태그 정보를 업데이트
+     * @param post 게시글
+     * @param tagNames 태그 이름 목록
+     */
+    @Transactional
+    public void updateTagsForExistingPost(Post post, List<String> tagNames) {
+        log.info("게시글 업데이트 시 태그 처리 시작 - Post ID: {}", post.getId());
 
         // 현재 게시글에 매핑된 태그 가져오기
         List<PostTag> existingPostTags = postTagRepository.findByPost(post);
@@ -84,86 +140,31 @@ public class TagService {
                 .filter(existingTagName -> !tagNames.contains(existingTagName))
                 .toList();
 
-        // 게시글에 태그 추가
-        addTagsToPost(post, tagsToAdd);
-
-        // 게시글에서 태그 제거
-        removeTagsFromPost(post, tagsToRemove);
-
-        log.info("게시글의 태그 업데이트 완료 - Post ID: {}", post.getId());
-    }
-
-    /**
-     * 게시글에 태그 추가
-     * @param post 게시글
-     * @param tagNames 태그 목록
-     */
-    @Transactional
-    public void addTagsToPost(Post post, List<String> tagNames) {
-        log.info("게시글에 태그 추가 시작 - Post ID: {}", post.getId());
-
-        // 태그를 조회하고 없으면 생성
-        List<Tag> tags = findOrCreateTags(tagNames);
-
-        // 게시글에 태그 추가
-        for (Tag tag : tags) {
-            PostTag postTag = PostTag.builder()
-                    .post(post)
-                    .tag(tag)
-                    .build();
-            postTagRepository.save(postTag);
+        // 태그 추가
+        if (!tagsToAdd.isEmpty()) {
+            addTagsToNewPost(post, tagsToAdd);
         }
 
-        log.info("게시글에 태그 추가 완료 - Post ID: {}", post.getId());
+        // 태그 제거
+        if (!tagsToRemove.isEmpty()) {
+            removeTagsFromPost(post, tagsToRemove);
+        }
+
+        log.info("게시글 업데이트 시 태그 처리 완료 - Post ID: {}", post.getId());
     }
 
     /**
      * 게시글에서 태그를 제거
      * @param post 게시글
-     * @param tagNames 제거할 태그 목록
+     * @param tagNames 제거할 태그 이름 목록
      */
     @Transactional
     public void removeTagsFromPost(Post post, List<String> tagNames) {
-        log.info("게시글의 태그 제거 - Post ID: {}", post.getId());
+        log.info("게시글의 태그 제거 시작 - Post ID: {}", post.getId());
 
         List<PostTag> postTagsToRemove = postTagRepository.findByPostAndTag_TagNameIn(post, tagNames);
-        postTagRepository.deleteAll(postTagsToRemove);
+        postTagRepository.deleteAllInBatch(postTagsToRemove);
 
         log.info("게시글의 태그 제거 완료 - Post ID: {}", post.getId());
-    }
-
-    /**
-     * 태그 이름 목록을 조회하거나 없으면 생성
-     *
-     * @param tagNames 태그 이름 목록
-     * @return 태그 목록
-     */
-    private List<Tag> findOrCreateTags(List<String> tagNames) {
-        // 주어진 태그 중에서 존재하는 태그 모두 조회
-        List<Tag> existingTags = tagRepository.findByTagNameIn(tagNames);
-
-        // 기존 태그 이름만 추출
-        List<String> existingTagNames = existingTags.stream()
-                .map(Tag::getTagName)
-                .toList();
-
-        // 존재하지 않는 태그 이름 필터링하여 새로 생성할 태그 목록 추출
-        List<String> tagsToCreate = tagNames.stream()
-                .filter(tagName -> !existingTagNames.contains(tagName))
-                .toList();
-
-        // 새로 생성할 태그 객체 리스트
-        List<Tag> newTags = tagsToCreate.stream()
-                .map(tagName -> Tag.builder().tagName(tagName).build())
-                .toList();
-
-        // 새로 생성한 태그 저장
-        tagRepository.saveAll(newTags);
-
-        // 기존 태그와 새로 생성한 태그를 합쳐서 반환
-        List<Tag> allTags = new ArrayList<>(existingTags);
-        allTags.addAll(newTags);
-
-        return allTags;
     }
 }

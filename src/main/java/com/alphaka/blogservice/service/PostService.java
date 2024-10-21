@@ -1,6 +1,5 @@
 package com.alphaka.blogservice.service;
 
-import com.alphaka.blogservice.Mapper.PostMapper;
 import com.alphaka.blogservice.client.UserClient;
 import com.alphaka.blogservice.dto.request.PostCreateRequest;
 import com.alphaka.blogservice.dto.request.PostUpdateRequest;
@@ -13,7 +12,11 @@ import com.alphaka.blogservice.entity.Post;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
 import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
+import com.alphaka.blogservice.projection.PostDetailProjectionImpl;
+import com.alphaka.blogservice.projection.PostListProjection;
+import com.alphaka.blogservice.projection.PostListProjectionImpl;
 import com.alphaka.blogservice.repository.BlogRepository;
+import com.alphaka.blogservice.repository.LikeRepository;
 import com.alphaka.blogservice.repository.PostRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -22,17 +25,15 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,63 +41,48 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PostService {
 
-    private final S3Service s3Service;
     private final TagService tagService;
     private final UserClient userClient;
     private final UserProfileService userProfileService;
     private final BlogRepository blogRepository;
     private final PostRepository postRepository;
-    private final PostMapper postMapper = PostMapper.INSTANCE;
+    private final LikeRepository likeRepository;
     private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * 특정 블로그의 게시글 목록 조회
+     * @param request HTTP 요청
      * @param nickname 블로그 닉네임
+     * @param pageable 페이징 정보
      * @return List<PostListResponse> 게시글 정보 목록
      */
-    public Page<PostListResponse> getBlogPostList(String nickname, Pageable pageable) {
+    public Page<PostListResponse> getBlogPostList(HttpServletRequest request, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}, Page: {}", nickname, pageable.getPageNumber());
 
-        // 닉네임을 통해 사용자 ID 조회
-        UserInfo user = userClient.findUser(nickname).getData();
+        // 현재 요청한 사용자와 블로그 소유자 확인
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(request);
+        UserInfo blogOwner = userClient.findUserByNickname(nickname).getData();
+        Blog blog = blogRepository.findByUserId(blogOwner.getUserId());
+        if (blog == null) {
+            log.error("블로그를 찾을 수 없습니다 - Nickname: {}", nickname);
+            throw new BlogNotFoundException();
+        }
 
-        // 블로그 조회
-        Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
+        // 소유자 여부 확인
+        boolean isOwner = isAuthor(currentUser, blogOwner);
 
-        // JPQL 쿼리를 통해 게시글별 좋아요 수와 댓글 수를 조회
-        Page<Object[]> postLikeCommentCounts = postRepository.findPostLikeAndCommentCountsByBlogId(blog.getId(), pageable);
-
-        // 결과를 DTO로 변환하여 처리
-        Page<PostListResponse> responsePage = postLikeCommentCounts.map(result -> {
-                    Long postId = (Long) result[0];
-                    Long likeCount = (Long) result[1];
-                    Long commentCount = (Long) result[2];
-
-                    // 게시글 정보를 조회 (필요한 다른 정보 추가 가능)
-                    Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
-
-                    // 첫 번째 이미지를 대표 이미지로 설정
-                    String representativeImage = extractFirstImage(post.getContent());
-
-                    // 태그 목록 추출
-                    List<String> tagNames = post.getPostTags().stream()
-                            .map(postTag -> postTag.getTag().getTagName())
-                            .collect(Collectors.toList());
-
-                    return PostListResponse.builder()
-                            .postId(postId)
-                            .title(post.getTitle())
-                            .contentSnippet(extractContentSnippet(post.getContent()))
-                            .representativeImage(representativeImage)
-                            .likeCount(likeCount.intValue())  // Long -> int 변환
-                            .commentCount(commentCount.intValue())  // Long -> int 변환
-                            .tags(tagNames)
-                            .createdAt(post.getCreatedAt().toString())
-                            .build();
-                });
+        // 게시글 목록 조회 및 응답 매핑
+        Page<PostListProjection> postListProjections = postRepository.findPostsByBlogId(blog.getId(), blogOwner.getUserId(), isOwner, pageable);
+        // PostListProjection을 PostListResponse로 변환
+        List<PostListResponse> postListResponses = postListProjections.getContent().stream()
+                .map(postProjection -> {
+                    List<String> tags = postRepository.findTagsByPostId(postProjection.getPostId());
+                    return mapToPostListResponse(postProjection, tags);
+                })
+                .toList();
 
         log.info("블로그의 게시글 리스트 조회 완료 - Nickname: {}", nickname);
-        return responsePage;
+        return new PageImpl<>(postListResponses, pageable, postListProjections.getTotalElements());
     }
 
     /**
@@ -105,35 +91,61 @@ public class PostService {
      * @param httpRequest HTTP 요청
      * @return PostDetailResponse 게시글 상세 정보
      */
+    @Transactional
     public PostResponse getPostDetails(HttpServletRequest httpRequest, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
-        // 게시글 조회
-        Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
-        UserInfo user = userClient.findUser(post.getUserId()).getData();
+        // 햔제 사용자 정보 조회
+        UserProfile currentUser = userProfileService.getUserProfileFromHeader(httpRequest);
 
-        // 태그 목록 추출
-        List<String> tagNames = post.getPostTags().stream()
-                .map(postTag -> postTag.getTag().getTagName())
-                .toList();
+        // 게시글 상세 정보 조회
+        PostDetailProjectionImpl projection = (PostDetailProjectionImpl) postRepository.findPostDetailById(postId, currentUser.getUserId());
+        if (projection == null) {
+            log.error("게시글을 찾을 수 없습니다 - Post ID: {}", postId);
+            throw new PostNotFoundException();
+        }
 
-        // 응답 객체 매핑
-        PostResponse response = postMapper.toResponse(post, user.getNickname(), tagNames);
-        response.setTags(tagNames);
+        // 작성자 정보 조회
+        UserInfo author = userClient.findUserById(projection.getAuthorId()).getData();
+
+        // 비공개 게시글 여부 확인 및 처리
+        if (!projection.getIsPublic() && !isAuthor(currentUser, author)) {
+            return handlePrivatePost(projection, author, postId);
+        }
+
+        // 태그 조회
+        List<String> tags = postRepository.findTagsByPostId(postId);
+
+        // 응답 생성
+        PostResponse response = mapToPostResponse(projection, author, tags);
 
         // 조회수 증가
-        String ipAddress = getClientIp(httpRequest);
-        String redisKey = "post:viewCount:" + postId + ":" + ipAddress; // Redis 키 구성
-        ValueOperations<String, String> ops = redisTemplate.opsForValue();
-
-        // Redis에 조회수 증가 여부 확인
-        Boolean isNewView = ops.setIfAbsent(redisKey, "1", 1, TimeUnit.DAYS);
-        if (Boolean.TRUE.equals(isNewView)) {
-            postRepository.increaseViewCount(postId);  // 조회수 증가
-        }
+        increaseViewCount(postId, httpRequest);
 
         log.info("게시글 상세 조회 완료 - Post ID: {}", postId);
         return response;
+    }
+
+    /**
+     * 최근 인기 게시글 목록 추천 (좋아요 많은순 9개)
+     * @return List<PostListResponse> 게시글 정보 목록
+     */
+    public List<PostListResponse> getPopularPosts() {
+        log.info("최근 인기 게시글 목록 조회");
+
+        // 전체 게시글 중 좋아요 많은 순으로 9개 조회
+        List<PostListProjectionImpl> postListProjections = postRepository.findPopularPosts();
+
+        // PostListProjection을 PostListResponse로 변환
+        List<PostListResponse> postListResponses = postListProjections.stream()
+                .map(postProjection -> {
+                    List<String> tags = postRepository.findTagsByPostId(postProjection.getPostId());
+                    return mapToPostListResponse(postProjection, tags);
+                })
+                .toList();
+
+        log.info("최근 인기 게시글 목록 조회 완료");
+        return postListResponses;
     }
 
     /**
@@ -146,28 +158,27 @@ public class PostService {
     public Long createPost(HttpServletRequest httpRequest, PostCreateRequest request) {
         log.info("게시글 작성 요청 - Nickname: {}, Title: {}", request.getNickname(), request.getTitle());
 
-        // 현재 사용자 정보 추출
+        // 현재 사용자 확인 및 블로그 조회
         UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
-
-        // 닉네임을 통해 블로그 조회
-        Blog blog = blogRepository.findById(userProfile.getUserId()).orElseThrow(BlogNotFoundException::new);
-
-        // 게시글 내용 처리
-        String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
+        Blog blog = blogRepository.findByUserId(userProfile.getUserId());
+        if (blog == null) {
+            log.error("블로그를 찾을 수 없습니다 - User ID: {}", userProfile.getUserId());
+            throw new BlogNotFoundException();
+        }
 
         Post post = Post.builder()
                 .userId(userProfile.getUserId())
                 .blog(blog)
                 .title(request.getTitle())
-                .content(processedContent)
-                .isPublic(request.isPublic())
+                .content(request.getContent())
+                .isPublic(request.isVisible())
                 .isCommentable(request.isCommentable())
                 .build();
 
         postRepository.save(post);
 
-        // 태그 처리
-        tagService.updateTagsForPost(post, request.getTagNames());
+        // 태그 연결
+        tagService.addTagsToNewPost(post, request.getTagNames());
 
         log.info("게시글 작성 완료 - Post ID: {}", post.getId());
         return post.getId();
@@ -184,20 +195,16 @@ public class PostService {
     public Long updatePost(HttpServletRequest httpRequest, Long postId, PostUpdateRequest request) {
         log.info("게시글 수정 요청 - Post ID: {}", postId);
 
-        // 현재 사용자 정보 추출
+        // 게시글 작성자 확인 및 업데이트
         UserProfile userProfile = userProfileService.getUserProfileFromHeader(httpRequest);
-
-        // 게시글 작성자 확인
         Post post = validatePostOwnership(postId, userProfile.getUserId());
 
-        // 게시글 내용 처리
-        String processedContent = processFiles(request.getContent(), request.getImages(), request.getVideos());
-
-        post.updatePost(request.getTitle(), processedContent, request.isPublic(), request.isCommentable());
-
+        // 게시글 업데이트
+        post.updatePost(request.getTitle(), request.getContent(), request.isVisible(), request.isCommentable());
         postRepository.save(post);
+
         // 태그 업데이트
-        tagService.updateTagsForPost(post, request.getTagNames());
+        tagService.updateTagsForExistingPost(post, request.getTagNames());
 
         log.info("게시글 수정 완료 - Post ID: {}", post.getId());
         return post.getId();
@@ -220,7 +227,45 @@ public class PostService {
     }
 
     /**
-     * 게시글 작성자인지 확인
+     * 조회수 증가
+     * @param postId 게시글 ID
+     * @param httpRequest HTTP 요청
+     */
+    @Transactional
+    public void increaseViewCount(Long postId, HttpServletRequest httpRequest) {
+        String ipAddress = getClientIp(httpRequest);
+        String redisKey = "post:viewCount:" + postId + ":" + ipAddress; // Redis 키 구성
+        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+
+        // Redis에 조회수 증가 여부 확인
+        Boolean isNewView = ops.setIfAbsent(redisKey, "1", 1, TimeUnit.DAYS);
+        if (Boolean.TRUE.equals(isNewView)) {
+            postRepository.increaseViewCount(postId);  // 조회수 증가
+        }
+    }
+
+    /**
+     * 조회한 비공개 게시글 처리
+     * @param projection 게시글 Projection
+     * @param author 작성자 정보
+     * @param postId 게시글 ID
+     */
+    @Transactional
+    public PostResponse handlePrivatePost(PostDetailProjectionImpl projection, UserInfo author, Long postId) {
+        return PostResponse.builder()
+                .postId(postId)
+                .author(author.getNickname())
+                .title("비공개 게시글입니다.")
+                .content("비공개 게시글입니다.")
+                .likeCount(null)
+                .viewCount(null)
+                .tags(null)
+                .createdAt(projection.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 게시글 소유권 확인
      * @param postId 게시글 ID
      * @param userId 사용자 ID
      * @return Post 객체
@@ -238,51 +283,60 @@ public class PostService {
     }
 
     /**
-     * HTML 내용에서 파일을 처리하고 경로를 업데이트
-     * @param content HTML 내용
-     * @param images 이미지 파일 목록
-     * @param videos 비디오 파일 목록
-     * @return content 파일 경로가 반영된 HTML 내용
+     * 작성자 확인
+     * @param currentUser 현재 로그인한 사용자
+     * @param author 게시글 작성자 정보
+     * @return 작성자가 일치하는지 여부
      */
-    public String processFiles(String content, List<MultipartFile> images, List<MultipartFile> videos) {
-        log.info("게시글 미디어 파일 처리 시작");
-
-        content = processImages(content, images != null ? images : List.of());
-        content = processVideos(content, videos != null ? videos : List.of());
-
-        log.info("게시글 미디어 파일 처리 완료");
-        return content;
+    private boolean isAuthor(UserProfile currentUser, UserInfo author) {
+        return currentUser != null && currentUser.getUserId().equals(author.getUserId());
     }
 
-    // 이미지 파일 처리
-    private String processImages(String content, List<MultipartFile> images) {
-        return processMedia(content, images, "image");
+    /**
+     * 게시글 목록 응답으로 변환
+     * @param projection 게시글 Projection
+     */
+    private PostListResponse mapToPostListResponse(PostListProjection projection, List<String> tags) {
+        return PostListResponse.builder()
+                .postId(projection.getPostId())
+                .title(projection.getTitle())
+                .contentSnippet(extractContentSnippet(projection.getContent()))
+                .representativeImage(extractFirstImage(projection.getContent()))
+                .likeCount(projection.getLikeCount().intValue())  // int로 변환
+                .commentCount(projection.getCommentCount())
+                .viewCount(projection.getViewCount())
+                .tags(tags)  // 태그 리스트 설정
+                .createdAt(projection.getCreatedAt().toString())  // 날짜 형식 맞춤
+                .build();
     }
 
-    // 비디오 파일 처리
-    private String processVideos(String content, List<MultipartFile> videos) {
-        return processMedia(content, videos, "video");
+    /**
+     * 게시글 상세 조회 응답으로 변환
+     * @param projection 게시글 Projection
+     * @param author 작성자 정보
+     */
+    private PostResponse mapToPostResponse(PostDetailProjectionImpl projection, UserInfo author, List<String> tags) {
+        return PostResponse.builder()
+                .postId(projection.getPostId())
+                .author(author.getNickname())
+                .title(projection.getTitle())
+                .content(projection.getContent())
+                .likeCount(projection.getLikeCount())
+                .viewCount(projection.getViewCount())
+                .tags(tags)
+                .isLike(projection.getIsLiked())
+                .createdAt(projection.getCreatedAt())
+                .build();
     }
 
-    // 미디어 파일 처리
-    private String processMedia(String content, List<MultipartFile> mediaFiles, String mediaType) {
-        for (MultipartFile media : mediaFiles) {
-            try {
-                String mediaName = Objects.requireNonNull(media.getOriginalFilename());
-                if (content.contains(mediaName)) {
-                    String mediaUrl;
-                    if (mediaType.equals("image")) {
-                        mediaUrl = s3Service.uploadPostImage(media);
-                    } else {
-                        mediaUrl = s3Service.uploadPostVideo(media);
-                    }
-                    content = content.replace(mediaName, mediaUrl);  // HTML에서 파일명을 S3 URL로 교체
-                }
-            } catch (Exception e) {
-                log.error("{} 처리 중 오류가 발생했습니다: {}", mediaType, media.getOriginalFilename(), e);
-            }
-        }
-        return content;
+    /**
+     * 클라이언트 IP 주소 추출
+     * @param request HTTP 요청
+     * @return IP 주소
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        return (xForwardedFor != null) ? xForwardedFor.split(",")[0] : request.getRemoteAddr();
     }
 
     /**
@@ -318,15 +372,5 @@ public class PostService {
 
         // 50자 이상이면 50자까지만 반환
         return text.length() > 50 ? text.substring(0, 50).trim() + "..." : text;
-    }
-
-    /**
-     * 클라이언트 IP 주소 추출
-     * @param request HTTP 요청
-     * @return IP 주소
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        return (xForwardedFor != null) ? xForwardedFor.split(",")[0] : request.getRemoteAddr();
     }
 }
