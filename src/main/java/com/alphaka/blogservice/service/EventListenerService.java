@@ -27,7 +27,7 @@ public class EventListenerService {
 
         // 유저 존재 여부 검증 (boolean 사용)l
         log.info("Checking user existence for ID: {}", id);
-        if (userClient.findUser(id).getData() == null) {
+        if (userClient.findUserById(id).getData() == null) {
             log.error("User not found for ID: {}", id);
             throw new UserNotFoundException();
         }
