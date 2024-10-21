@@ -43,18 +43,16 @@ spring:
   profiles:
     include: secret
 
-#aws s3
 cloud:
   aws:
-    s3:
-      bucket: bucket-name
+    bucket: bucket
     stack:
       auto: false
     region:
       static: region
     credentials:
-      accessKey: access-key
-      secretKey: secret-key
+      accessKey: accessKey
+      secretKey: secretKey
 
 # eureka
 eureka:
