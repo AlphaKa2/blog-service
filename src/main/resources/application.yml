@@ -53,8 +53,8 @@ cloud:
     region:
       static: region
     credentials:
-      access-key: access-key
-      secret-key: secret-key
+      accessKey: access-key
+      secretKey: secret-key
 
 # eureka
 eureka:
