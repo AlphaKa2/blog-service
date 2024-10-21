@@ -14,7 +14,7 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class S3Service {
 
-    @Value("${cloud.aws.s3.bucket}")
+    @Value("${cloud.aws.bucket}")
     private String bucketName;
 
     private AmazonS3 amazonS3;
