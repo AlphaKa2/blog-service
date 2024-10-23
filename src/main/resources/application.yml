@@ -9,7 +9,6 @@ spring:
     username: username
     password: password
 
-
   #redis
   data:
     redis:
@@ -63,3 +62,11 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: url
+
+# UTF-8 encoding
+server:
+  servlet:
+    encoding:
+        charset: UTF-8
+        enabled: true
+        force: true
