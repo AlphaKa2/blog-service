@@ -2,13 +2,17 @@ spring:
   application:
     name: blog-service
 
+  #encoding
+  messages:
+    basename: messages
+    encoding: UTF-8
+
   #datasource
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: url
     username: username
     password: password
-
 
   #redis
   data:
@@ -63,3 +67,11 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: url
+
+# UTF-8 encoding
+server:
+  servlet:
+    encoding:
+        charset: UTF-8
+        enabled: true
+        force: true
