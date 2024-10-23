@@ -28,8 +28,11 @@ public class S3Service {
         expTimeMillis += 1000 * 60 * 5;
         expiration.setTime(expTimeMillis);
 
+        // directory에 파일 이름을 붙여 경로 생성
+        String filePath = "posts/" + fileName;
+
         // 서명된 URL 생성
-        GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, fileName)
+        GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, filePath)
                 .withMethod(HttpMethod.PUT)
                 .withExpiration(expiration);
 
