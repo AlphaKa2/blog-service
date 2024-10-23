@@ -15,7 +15,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class S3Controller {
 
-    private S3Service s3Service;
+    private final S3Service s3Service;
 
     // 서명된 URL 요청
     @PostMapping("/presigned-url")
