@@ -2,11 +2,6 @@ spring:
   application:
     name: blog-service
 
-  #encoding
-  messages:
-    basename: messages
-    encoding: UTF-8
-
   #datasource
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
