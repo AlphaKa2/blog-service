@@ -17,7 +17,7 @@ public class S3Service {
     @Value("${cloud.aws.bucket}")
     private String bucketName;
 
-    private AmazonS3 amazonS3;
+    private final AmazonS3 amazonS3;
 
     // 서명된 URL을 생성하는 메서드
     public String generatePresignedUrl(String fileName, String fileType) {
