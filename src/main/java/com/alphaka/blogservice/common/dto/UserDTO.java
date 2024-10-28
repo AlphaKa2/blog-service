@@ -1,4 +1,4 @@
-package com.alphaka.blogservice.dto.request;
+package com.alphaka.blogservice.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserProfile {
+public class UserDTO {
     private Long userId;
     private String nickname;
     private String profileImage;

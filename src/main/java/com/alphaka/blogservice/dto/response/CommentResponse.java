@@ -1,9 +1,11 @@
 package com.alphaka.blogservice.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -11,26 +13,35 @@ import java.util.List;
 public class CommentResponse {
 
     private Long commentId;
-    private String authorNickname;
+    private Long parentId;
+    private Long authorId;
+    private String author;
     private String authorProfileImage;
     private String content;
-    private int likeCount;
-    private List<CommentResponse> children;  // 자식 댓글 리스트
+    private List<CommentResponse> children = new ArrayList<>();
+    private Long likeCount;
     private boolean isLiked;
+
+    @JsonProperty("isPublic")
+    private boolean isPublic;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
-    @Builder
-    public CommentResponse(Long commentId, String authorNickname, String authorProfileImage, String content, int likeCount,
-                           List<CommentResponse> children, boolean isLiked, LocalDateTime createdAt) {
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedAt;
+
+    // QueryDSL을 사용하기 위해 authorProfileImage 필드를 제외 (서비스 로직에서 처리)
+    public CommentResponse(Long commentId, Long parentId, Long authorId, String content, Long likeCount,
+                           boolean isLiked, boolean isPublic, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.commentId = commentId;
-        this.authorNickname = authorNickname;
-        this.authorProfileImage = authorProfileImage;
+        this.parentId = parentId;
+        this.authorId = authorId;
         this.content = content;
         this.likeCount = likeCount;
-        this.children = children;
         this.isLiked = isLiked;
+        this.isPublic = isPublic;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 }
