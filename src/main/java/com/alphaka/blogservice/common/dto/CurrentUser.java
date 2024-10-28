@@ -1,4 +1,4 @@
-package com.alphaka.blogservice.dto.request;
+package com.alphaka.blogservice.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,8 +9,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserInfo {
+public class CurrentUser {
     private Long userId;
     private String nickname;
     private String profileImage;
+    private String role;
 }
