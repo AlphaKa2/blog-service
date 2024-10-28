@@ -1,4 +1,4 @@
-package com.alphaka.blogservice.repository;
+package com.alphaka.blogservice.repository.comment;
 
 import com.alphaka.blogservice.entity.Comment;
 import org.springframework.data.jpa.repository.JpaRepository;

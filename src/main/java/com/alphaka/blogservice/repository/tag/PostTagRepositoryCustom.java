@@ -1,4 +1,4 @@
-package com.alphaka.blogservice.repository;
+package com.alphaka.blogservice.repository.tag;
 
 import com.alphaka.blogservice.entity.PostTag;
 
