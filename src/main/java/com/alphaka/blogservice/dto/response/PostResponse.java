@@ -1,7 +1,9 @@
 package com.alphaka.blogservice.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.List;
 public class PostResponse {
 
     private Long postId;
+    private Long authorId;
     private String author;
     private String title;
     private String content;
@@ -23,20 +26,31 @@ public class PostResponse {
     private Integer viewCount;
     private boolean isLiked;
 
+    @JsonProperty("isPublic")
+    private boolean isPublic;
+
+    @JsonProperty("isCommentable")
+    private boolean isCommentable;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
-    @Builder
-    public PostResponse(Long postId, String author, String title, String content, List<String> tags,
-                        Long likeCount, Integer viewCount, boolean isLike, LocalDateTime createdAt) {
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedAt;
+
+    // QueryDSL 프로젝션을 위해 author와 tags를 제외 (서비스 로직에서 별도로 추가)
+    public PostResponse(Long postId, Long authorId, String title, String content, Long likeCount, Integer viewCount,
+                        boolean isLike, boolean isPublic, boolean isCommentable, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.postId = postId;
-        this.author = author;
+        this.authorId = authorId;
         this.title = title;
         this.content = content;
-        this.tags = tags;
         this.likeCount = likeCount;
         this.viewCount = viewCount;
         this.isLiked = isLike;
+        this.isPublic = isPublic;
+        this.isCommentable = isCommentable;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 }

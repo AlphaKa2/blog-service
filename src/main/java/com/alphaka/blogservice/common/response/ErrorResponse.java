@@ -1,4 +1,4 @@
-package com.alphaka.blogservice.dto.response;
+package com.alphaka.blogservice.common.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

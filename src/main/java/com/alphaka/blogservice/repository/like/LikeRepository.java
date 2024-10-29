@@ -1,4 +1,4 @@
-package com.alphaka.blogservice.repository;
+package com.alphaka.blogservice.repository.like;
 
 import com.alphaka.blogservice.entity.Comment;
 import com.alphaka.blogservice.entity.Like;
@@ -16,10 +16,4 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 
     // 사용자 ID와 댓글로 좋아요 정보 조회
     Optional<Like> findByUserIdAndComment(Long userId, Comment comment);
-
-    // 사용자 ID와 게시글로 좋아요 정보 존재 여부 조회
-    boolean existsByUserIdAndPost(Long userId, Post post);
-
-    // 사용자 ID와 댓글로 좋아요 정보 존재 여부 조회
-    boolean existsByUserIdAndComment(Long userId, Comment comment);
 }

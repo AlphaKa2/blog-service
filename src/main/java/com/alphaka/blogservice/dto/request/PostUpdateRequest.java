@@ -1,22 +1,16 @@
 package com.alphaka.blogservice.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class PostUpdateRequest {
-
-    @NotBlank(message = "닉네임은 필수입니다.")
-    private String nickname;  // blogId 대신 사용
 
     @NotBlank(message = "제목은 필수입니다.")
     @Size(min = 1, max = 100, message = "제목은 1자 이상 100자 이하여야 합니다.")
@@ -25,7 +19,20 @@ public class PostUpdateRequest {
     @NotBlank(message = "내용은 필수입니다.")
     private String content;
 
-    private boolean visible;
-    private boolean commentable;
+    @JsonProperty("isPublic")
+    private boolean isPublic;
+
+    @JsonProperty("isCommentable")
+    private boolean isCommentable;
+
     private List<String> tagNames;
+
+    @Builder
+    public PostUpdateRequest(String title, String content, boolean isPublic, boolean isCommentable, List<String> tagNames) {
+        this.title = title;
+        this.content = content;
+        this.isPublic = isPublic;
+        this.isCommentable = isCommentable;
+        this.tagNames = tagNames;
+    }
 }

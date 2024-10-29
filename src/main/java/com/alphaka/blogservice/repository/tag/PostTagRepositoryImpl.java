@@ -1,18 +1,16 @@
-package com.alphaka.blogservice.repository;
+package com.alphaka.blogservice.repository.tag;
 
 import com.alphaka.blogservice.entity.PostTag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.PreparedStatement;
 import java.util.List;
 
+@RequiredArgsConstructor
 public class PostTagRepositoryImpl implements PostTagRepositoryCustom {
 
     private final JdbcTemplate jdbcTemplate;
-
-    public PostTagRepositoryImpl(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Override
     public void batchInsert(List<PostTag> postTags) {

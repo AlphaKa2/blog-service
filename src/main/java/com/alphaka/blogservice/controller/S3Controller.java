@@ -1,6 +1,6 @@
 package com.alphaka.blogservice.controller;
 
-import com.alphaka.blogservice.dto.response.ApiResponse;
+import com.alphaka.blogservice.common.response.ApiResponse;
 import com.alphaka.blogservice.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;

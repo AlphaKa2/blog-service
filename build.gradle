@@ -28,35 +28,49 @@ ext {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    // JDBC
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
-    // eureka client
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-    // Redis
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    // Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
-    // 쿼리 파라미터를 로그로 남기는 외부 라이브러리
-    implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
-    // FeignClient
-    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-    // AWS S3
-    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
-    // JSOUP (HTML 파싱)
-    implementation 'org.jsoup:jsoup:1.15.3'
+    // *** Spring Boot Starters***
+    implementation 'org.springframework.boot:spring-boot-starter-web' // Web
+    implementation 'org.springframework.boot:spring-boot-starter-validation' // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa' // JPA
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc' // JDBC
+
+    // *** Spring Cloud ***
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client' // Eureka
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign' // Feign
+    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE' // AWS S3
+
+    // *** Spring Doc ***
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.15' // OpenAPI
+
+    // *** 데이터베이스 및 캐시 ***
+    runtimeOnly 'com.mysql:mysql-connector-j' // MySQL Connector
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis' // Redis
+
+    // *** 메시징 ***
+    implementation 'org.springframework.kafka:spring-kafka' // Kafka
+    implementation 'org.springframework.retry:spring-retry' // Retry
+
+    // *** SQL 로그 ***
+    implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0' // P6SPY
+
+    // *** HTML 파싱 ***
+    implementation 'org.jsoup:jsoup:1.15.3' // JSOUP
+
+    // *** Lombok ***
     compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.projectlombok:lombok'
 
-    // QueryDSL
+    // *** 개발 도구 ***
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // *** 테스트 ***
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+
+    // *** QueryDSL ***
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
     annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jakarta'
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
