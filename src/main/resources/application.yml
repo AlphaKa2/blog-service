@@ -1,19 +1,17 @@
+server:
+  port: 8003
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
 spring:
   application:
     name: blog-service
 
-  #datasource
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: url
-    username: username
-    password: password
-
-  #redis
-  data:
-    redis:
-      host: host
-      port: 6379
 
   #jpa
   jpa:
@@ -27,7 +25,6 @@ spring:
 
   #Kafka
   kafka:
-    bootstrap-servers: url
     consumer:
       group-id: blog-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -38,9 +35,34 @@ spring:
             trusted:
               packages: '*'
 
-  #security
-  profiles:
-    include: secret
+# local 프로필
+---
+
+spring:
+
+  config:
+    activate:
+      on-profile: local
+
+  cloud:
+    kubernetes:
+      enabled: false
+
+  #datasource
+  datasource:
+    url: url
+    username: username
+    password: password
+
+  #redis
+  data:
+    redis:
+      host: host
+      port: 6379
+
+  #Kafka
+  kafka:
+    bootstrap-servers: url
 
 cloud:
   aws:
@@ -63,10 +85,46 @@ eureka:
     service-url:
       defaultZone: url
 
-# UTF-8 encoding
-server:
-  servlet:
-    encoding:
-        charset: UTF-8
-        enabled: true
-        force: true
+# develop 프로필
+---
+spring:
+
+  config:
+    activate:
+      on-profile: develop
+
+  #datasource
+  datasource:
+    url: '${MYSQL_URL}/blog_service'
+    username: "${MYSQL_USERNAME}"
+    password: "${MYSQL_PASSWORD}"
+    hikari:
+
+      data-source-properties:
+        rewriteBatchStatements: true
+
+  #redis
+  data:
+    redis:
+      host: "${REDIS_HOST}"
+      port: "${REDIS_PORT}"
+      password: "${REDIS_PASSWORD}"
+
+  #Kafka
+  kafka:
+    bootstrap-servers: "${KAFKA_BROKER_SERVER}"
+
+eureka:
+  client:
+    enabled: false
+
+cloud:
+  aws:
+    bucket: "${AWS_BUCKET}"
+    stack:
+      auto: false
+    region:
+      static: "${AWS_REGION}"
+    credentials:
+      accessKey: "${AWS_ACCESSKEY}"
+      secretKey: "${AWS_SECRETKEY}"

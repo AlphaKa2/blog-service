@@ -38,6 +38,10 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client' // Eureka
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign' // Feign
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE' // AWS S3
+    implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap:4.1.4' // Bootstrap
+    implementation 'org.springframework.cloud:spring-cloud-starter-kubernetes:1.1.10.RELEASE' // Kubernetes
+    implementation 'org.springframework.cloud:spring-cloud-starter-kubernetes-client-config:3.1.3' // Kubernetes
+    implementation 'org.springframework.cloud:spring-cloud-starter-kubernetes-client-loadbalancer:3.1.3' // Kubernetes
 
     // *** Spring Doc ***
     implementation 'org.springdoc:springdoc-openapi-ui:1.6.15' // OpenAPI
@@ -56,6 +60,8 @@ dependencies {
     // *** HTML 파싱 ***
     implementation 'org.jsoup:jsoup:1.15.3' // JSOUP
 
+    // *** 자바 객체, XML 매핑, 클라우드 쿠버네티스에서 의존 ***
+    implementation 'javax.xml.bind:jaxb-api:2.3.1' // JAXB
     // *** Lombok ***
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

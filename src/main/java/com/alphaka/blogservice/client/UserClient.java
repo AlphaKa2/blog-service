@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * User-Service와 통신하기 위한 Feign Client
  */
-@FeignClient(name = "USER-SERVICE", fallback = UserClientFallback.class)
+@FeignClient(name = "user-service", fallback = UserClientFallback.class)
 public interface UserClient {
 
     /**

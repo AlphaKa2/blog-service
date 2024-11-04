@@ -11,4 +11,4 @@ COPY build/libs/*.jar app.jar
 EXPOSE 8003
 
 # develop 프로필로 애플리케이션 실행
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=develop"]
