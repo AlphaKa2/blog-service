@@ -39,4 +39,34 @@ public class Report {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ReportStatus status = ReportStatus.PENDING; // 신고 처리 상태
+
+    // 사용자 신고
+    public static Report reportUser(Long reporterId, Long reportedId, Reason reason, String details) {
+        Report report = new Report();
+        report.reporterId = reporterId;
+        report.reportedId = reportedId;
+        report.reason = reason;
+        report.details = details;
+        return report;
+    }
+
+    // 게시글 신고
+    public static Report reportPost(Long reporterId, Post post, Reason reason, String details) {
+        Report report = new Report();
+        report.reporterId = reporterId;
+        report.post = post;
+        report.reason = reason;
+        report.details = details;
+        return report;
+    }
+
+    // 댓글 신고
+    public static Report reportComment(Long reporterId, Comment comment, Reason reason, String details) {
+        Report report = new Report();
+        report.reporterId = reporterId;
+        report.comment = comment;
+        report.reason = reason;
+        report.details = details;
+        return report;
+    }
 }
