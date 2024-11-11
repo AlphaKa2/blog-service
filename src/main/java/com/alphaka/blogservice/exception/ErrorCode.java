@@ -29,6 +29,9 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(404, "CMT001", "존재하지 않는 댓글입니다."),
     PARENT_COMMENT_NOT_FOUND(404, "CMT002", "존재하지 않는 부모 댓글입니다."),
 
+    // 신고 관련
+    INVALID_REPORT_TARGET(400, "RPT001", "신고 대상이 올바르지 않습니다."),
+
     // S3 관련
     S3_FILE_EMPTY(400, "S3_001", "파일이 비어있습니다."),
     S3_FILE_EXTENSION_INVALID(400, "S3_002", "지원하지 않는 파일 확장자입니다."),
