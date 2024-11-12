@@ -10,6 +10,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class CommentResponse {
 
     private Long commentId;

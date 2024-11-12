@@ -58,6 +58,9 @@ public class Comment {
     @Column
     private LocalDateTime deletedAt;
 
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Report> reports = new ArrayList<>();
+
     @Builder
     public Comment(Long userId, Post post, String content, Comment parent, boolean isPublic) {
         this.userId = userId;

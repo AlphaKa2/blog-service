@@ -2,6 +2,7 @@ package com.alphaka.blogservice.client;
 
 import com.alphaka.blogservice.common.dto.UserDTO;
 import com.alphaka.blogservice.common.response.ApiResponse;
+import com.alphaka.blogservice.config.FeignConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,7 +14,7 @@ import java.util.Set;
 /**
  * User-Service와 통신하기 위한 Feign Client
  */
-@FeignClient(name = "user-service", fallback = UserClientFallback.class)
+@FeignClient(name = "user-service", fallback = UserClientFallback.class, configuration = FeignConfig.class)
 public interface UserClient {
 
     /**
