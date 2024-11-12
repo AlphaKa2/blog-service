@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -38,11 +39,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PostService {
 
+    private final CacheService cacheService;
     private final TagService tagService;
     private final UserClient userClient;
     private final BlogRepository blogRepository;
     private final PostRepository postRepository;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 게시글 작성
@@ -75,6 +77,11 @@ public class PostService {
         }
 
         log.info("게시글 작성 완료 - Post ID: {}", post.getId());
+
+        // 게시글 작성 후, 블로그의 postList와 tagList 캐시 무효화
+        Long blogId = blog.getId();
+        cacheService.evictPostListAndTagListCache(blogId);
+
         return post.getId();
     }
 
@@ -124,6 +131,12 @@ public class PostService {
         tagService.updateTagsForPost(post, request.getTagNames());
 
         log.info("게시글 수정 완료 - Post ID: {}", post.getId());
+
+        // 게시글 수정 후, 블로그의 postList와 tagList 캐시 무효화 및 해당 게시글의 postDetails 캐시 무효화
+        Long blogId = post.getBlog().getId();
+        cacheService.evictPostListAndTagListCache(blogId);
+        cacheService.evictPostDetailsCache(postId);
+
         return post.getId();
     }
 
@@ -140,6 +153,12 @@ public class PostService {
 
         postRepository.delete(post);
         log.info("게시글 삭제 완료 - Post ID: {}", post.getId());
+
+        // 게시글 삭제 후, 블로그의 postList와 tagList 캐시 무효화 및 해당 게시글의 postDetails 캐시 무효화
+        Long blogId = post.getBlog().getId();
+        cacheService.evictCommentsCache(postId);
+        cacheService.evictPostListAndTagListCache(blogId);
+        cacheService.evictPostDetailsCache(postId);
     }
 
     /**
@@ -150,6 +169,7 @@ public class PostService {
      * @return PostDetailResponse - 게시글 상세 정보
      */
     @Transactional
+    @Cacheable(value = "blogService:postDetails", key = "#postId", unless = "#result == null")
     public PostResponse getPostResponse(HttpServletRequest request, CurrentUser currentUser, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
@@ -182,8 +202,11 @@ public class PostService {
      * latest: 최신순, oldest: 오래된순, views: 조회수 많은순, likes: 좋아요 많은순
      * @param currentUser - 현재 사용자 정보
      * @param nickname - 블로그 주인 닉네임
-     *
      */
+    @Cacheable(value = "blogService:postList",
+            key = "@postService.getBlogIdByNickname(#nickname) + '-' + #pageable.pageNumber + " +
+                    "'-' + #pageable.pageSize + '-' + #pageable.sort.toString()",
+            unless = "#result == null || #result.isEmpty()")
     public List<PostListResponse> getPostListResponse(CurrentUser currentUser, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}", nickname);
 
@@ -237,7 +260,7 @@ public class PostService {
     public void increaseViewCount(Long postId, HttpServletRequest httpRequest) {
         String ipAddress = getClientIp(httpRequest);
         String redisKey = "post:viewCount:" + postId + ":" + ipAddress; // Redis 키 구성
-        ValueOperations<String, String> ops = redisTemplate.opsForValue();
+        ValueOperations<String, Object> ops = redisTemplate.opsForValue();
 
         // Redis에 조회수 증가 여부 확인
         Boolean isNewView = ops.setIfAbsent(redisKey, "1", 1, TimeUnit.DAYS);
@@ -307,5 +330,19 @@ public class PostService {
 
         // 50자 이상이면 50자까지만 반환
         return text.length() > 50 ? text.substring(0, 50).trim() + "..." : text;
+    }
+
+    /**
+     * 닉네임을 통해 블로그 ID를 조회하는 메서드
+     * @param nickname - 블로그 주인의 닉네임
+     * @return 블로그 ID
+     */
+    public Long getBlogIdByNickname(String nickname) {
+        // 닉네임을 통해 사용자 정보를 조회
+        UserDTO user = userClient.findUserByNickname(nickname).getData();
+        // 사용자 ID를 통해 블로그 정보를 조회
+        Blog blog = blogRepository.findByUserId(user.getUserId())
+                .orElseThrow(BlogNotFoundException::new);
+        return blog.getId();
     }
 }

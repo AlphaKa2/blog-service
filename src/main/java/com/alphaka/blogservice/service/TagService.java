@@ -13,6 +13,7 @@ import com.alphaka.blogservice.repository.tag.PostTagRepository;
 import com.alphaka.blogservice.repository.tag.TagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TagService {
 
+    private final CacheService cacheService;
     private final UserClient userClient;
     private final TagRepository tagRepository;
     private final PostTagRepository postTagRepository;
@@ -35,6 +37,7 @@ public class TagService {
      * @param nickname - 블로그 주인의 닉네임
      * @return List<BlogTagListResponse> - 태그 목록과 목록별 게시글 수
      */
+    @Cacheable(value = "blogService:tagList", key = "@postService.getBlogIdByNickname(nickname)", unless = "#result == null || #result.isEmpty()")
     public List<BlogTagListResponse> getTagListForBlog(String nickname) {
         log.info("블로그의 태그 목록 조회 시작 - Nickname: {}", nickname);
 
@@ -85,8 +88,10 @@ public class TagService {
                 .toList();
 
         postTagRepository.batchInsert(postTags);
-
         log.info("게시글 생성 시 태그 추가 완료 - Post ID: {}", post.getId());
+
+        // 태그 추가 시, 관련 캐시 무효화 (블로그의 태그 목록)
+        cacheService.evictTagListCache(post.getBlog().getId());
     }
 
     /**
@@ -143,6 +148,9 @@ public class TagService {
         }
 
         log.info("게시글 업데이트 시 태그 처리 완료 - Post ID: {}", post.getId());
+
+        // 태그 업데이트 시, 관련 캐시 무효화 (블로그의 태그 목록)
+        cacheService.evictTagListCache(post.getBlog().getId());
     }
 
     /**

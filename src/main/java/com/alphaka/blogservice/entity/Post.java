@@ -65,6 +65,9 @@ public class Post {
     @Column
     private LocalDateTime deletedAt;
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Report> reports = new ArrayList<>();
+
     @Builder
     public Post(Long userId, Blog blog, String title, String content, boolean isPublic, boolean isCommentable) {
         this.userId = userId;

@@ -13,10 +13,10 @@ import com.alphaka.blogservice.exception.custom.ParentCommentNotFoundException;
 import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
 import com.alphaka.blogservice.repository.comment.CommentRepository;
-import com.alphaka.blogservice.repository.like.LikeRepository;
 import com.alphaka.blogservice.repository.post.PostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CommentService {
 
+    private final CacheService cacheService;
     private final UserClient userClient;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
@@ -70,6 +71,11 @@ public class CommentService {
         commentRepository.save(comment);
 
         log.info("댓글 작성 완료 - Comment ID: {}", comment.getId());
+
+        // 댓글 작성 후, 댓글 캐시와 블로그 게시글 목록 캐시 무효화
+        Long blogId = post.getBlog().getId();
+        cacheService.evictCommentsAndPostListCache(blogId, post.getId());
+
         return comment.getId();
     }
 
@@ -132,6 +138,10 @@ public class CommentService {
         commentRepository.save(comment);
         log.info("댓글 수정 완료 - Comment ID: {}", comment.getId());
 
+        // 댓글 수정 후, 댓글 캐시와 블로그 게시글 목록 캐시 무효화 (블로그 ID 사용)
+        Long blogId = post.getBlog().getId();
+        cacheService.evictCommentsAndPostListCache(blogId, post.getId());
+
         return comment.getId();
     }
 
@@ -150,6 +160,11 @@ public class CommentService {
         // 댓글 삭제
         commentRepository.delete(comment);
         log.info("댓글 삭제 완료 - Comment ID: {}", commentId);
+
+        // 댓글 삭제 후, 댓글 캐시와 블로그 게시글 목록 캐시 무효화 (블로그 ID 사용)
+        Post post = comment.getPost();
+        Long blogId = post.getBlog().getId();
+        cacheService.evictCommentsAndPostListCache(blogId, post.getId());
     }
 
     /**
@@ -169,14 +184,13 @@ public class CommentService {
         return comment;
     }
 
-    /*<-------------------------------------------------------------------------------------------------------->*/
-
     /**
      * 특정 게시글의 댓글 조회
      * @param currentUser - 현재 사용자 정보
      * @param postId - 게시글 ID
      * @return List<CommentDetailResponse> - 댓글 목록
      */
+    @Cacheable(value = "blogService:comments", key = "#postId", unless = "#result == null || #result.isEmpty()")
     public List<CommentResponse> getCommentsForPost(CurrentUser currentUser, Long postId) {
         log.info("특정 게시글의 댓글 조회 - Post ID: {}", postId);
 
@@ -213,7 +227,10 @@ public class CommentService {
 
         // 사용자 정보 조회
         log.info("사용자 정보 조회");
-        List<UserDTO> userDTOs = userClient.getUsersById(authorIds).getData();
+        List<UserDTO> userDTOs = Collections.emptyList();
+        if (!authorIds.isEmpty()) {
+            userDTOs = userClient.getUsersById(authorIds).getData();
+        }
         Map<Long, UserDTO> userMap = userDTOs.stream()
                 .collect(Collectors.toMap(UserDTO::getUserId, Function.identity()));
 

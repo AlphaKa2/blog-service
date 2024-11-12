@@ -22,6 +22,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class LikeService {
 
+    private final CacheService cacheService;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final LikeRepository likeRepository;
@@ -58,6 +59,10 @@ public class LikeService {
             likeRepository.save(like);
             log.info("게시글 좋아요 - Post ID: {}, User ID: {}", postId, userId);
         }
+
+        // 좋아요 변경 시, 관련 캐시 무효화
+        cacheService.evictLikeCountForPost(postId);
+        cacheService.evictUserLikeOnPost(userId, postId);
     }
 
     /**
@@ -92,5 +97,9 @@ public class LikeService {
             likeRepository.save(like);
             log.info("댓글 좋아요 - Comment ID: {}, User ID: {}", commentId, userId);
         }
+
+        // 좋아요 변경 시, 관련 캐시 무효화
+        cacheService.evictLikeCountForComment(commentId);
+        cacheService.evictUserLikeOnComment(userId, commentId);
     }
 }
