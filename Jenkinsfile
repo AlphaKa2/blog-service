@@ -76,8 +76,14 @@ pipeline {
                         git fetch origin develop
                         git checkout develop || git checkout -b develop origin/develop
 
-                        # 이미지 태그 업데이트
-                        sed -i 's/\${IMAGE_TAG}/'${DOCKER_TAG}'/g' ${OVERLAY_PATH}/deployment-patch.yaml
+                        # 이미지 태그 업데이트 (첫 빌드인지 여부를 확인하여 처리)
+                        if grep -q '\\${IMAGE_TAG}' ${OVERLAY_PATH}/deployment-patch.yaml; then
+                            # 첫 빌드일 경우 ${IMAGE_TAG}를 DOCKER_TAG로 대체
+                            sed -i 's/\\${IMAGE_TAG}/'"${DOCKER_TAG}"'/g' ${OVERLAY_PATH}/deployment-patch.yaml
+                        else
+                            # 이후 빌드일 경우 기존 태그를 새로운 DOCKER_TAG로 대체
+                            sed -i 's/alphaka\\/blog-service:[^ ]*/alphaka\\/blog-service:'"${DOCKER_TAG}"'/g' ${OVERLAY_PATH}/deployment-patch.yaml
+                        fi
 
                         # Git 설정
                         git config user.email "ghwnsdla8094@gmail.com"
