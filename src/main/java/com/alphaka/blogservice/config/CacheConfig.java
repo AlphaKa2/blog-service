@@ -35,33 +35,17 @@ public class CacheConfig {
         // 특정 캐시에 대한 설정
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
 
-        // 게시글 상세 조회 캐시 설정
-        cacheConfigurations.put("blogService:postDetails", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(genericSerializer))
-                .entryTtl(Duration.ofMinutes(30)) // 캐시 만료 시간
-                .disableCachingNullValues());
+        // 게시글 상세 조회 캐시
+        cacheConfigurations.put("blogService:cache:postDetails", defaultConfig);
 
-        // 게시글 목록 조회 캐시 설정
-        cacheConfigurations.put("blogService:postList", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(genericSerializer))
-                .entryTtl(Duration.ofMinutes(30)) // 캐시 만료 시간
-                .disableCachingNullValues());
+        // 게시글 목록 조회 캐시
+        cacheConfigurations.put("blogService:cache:postList", defaultConfig);
 
-        // 태그 목록 조회 캐시 설정
-        cacheConfigurations.put("blogService:tagList", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(genericSerializer))
-                .entryTtl(Duration.ofMinutes(30)) // 캐시 만료 시간
-                .disableCachingNullValues());
+        // 태그 목록 조회 캐시
+        cacheConfigurations.put("blogService:cache:tagList", defaultConfig);
 
-        // 댓글 조회 캐시 설정
-        cacheConfigurations.put("blogService:comments", RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(genericSerializer))
-                .entryTtl(Duration.ofMinutes(30)) // 캐시 만료 시간
-                .disableCachingNullValues());
+        // 댓글 목록 조회 캐시
+        cacheConfigurations.put("blogService:cache:comments", defaultConfig);
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)

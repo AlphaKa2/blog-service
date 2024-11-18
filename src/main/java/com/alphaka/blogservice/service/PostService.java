@@ -169,7 +169,7 @@ public class PostService {
      * @return PostDetailResponse - 게시글 상세 정보
      */
     @Transactional
-    @Cacheable(value = "blogService:postDetails", key = "#postId", unless = "#result == null")
+    @Cacheable(value = "blogService:cache:postDetails", key = "'post' + #postId", unless = "#result == null")
     public PostResponse getPostResponse(HttpServletRequest request, CurrentUser currentUser, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
@@ -203,9 +203,8 @@ public class PostService {
      * @param currentUser - 현재 사용자 정보
      * @param nickname - 블로그 주인 닉네임
      */
-    @Cacheable(value = "blogService:postList",
-            key = "@postService.getBlogIdByNickname(#nickname) + '-' + #pageable.pageNumber + " +
-                    "'-' + #pageable.pageSize + '-' + #pageable.sort.toString()",
+    @Cacheable(value = "blogService:cache:postList",
+            key = "'blog' + @postService.getBlogIdByNickname(#nickname) + ':page' + #pageable.pageNumber + ':size' + #pageable.pageSize",
             unless = "#result == null || #result.isEmpty()")
     public List<PostListResponse> getPostListResponse(CurrentUser currentUser, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}", nickname);
