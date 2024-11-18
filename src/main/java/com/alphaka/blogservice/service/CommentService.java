@@ -190,7 +190,7 @@ public class CommentService {
      * @param postId - 게시글 ID
      * @return List<CommentDetailResponse> - 댓글 목록
      */
-    @Cacheable(value = "blogService:comments", key = "#postId", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(value = "blogService:cache:comments", key = "'post:' + #postId", unless = "#result == null")
     public List<CommentResponse> getCommentsForPost(CurrentUser currentUser, Long postId) {
         log.info("특정 게시글의 댓글 조회 - Post ID: {}", postId);
 
