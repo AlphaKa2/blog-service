@@ -103,6 +103,34 @@ public class PostController {
         return new ApiResponse<>(response);
     }
 
+    /**
+     * 전체 게시글 키워드 검색 (페이징, 정렬 default: 최신순)
+     */
+    @GetMapping("/search")
+    public ApiResponse<Map<String, Object>> searchPosts(@Nullable CurrentUser currentUser,
+                                                        @RequestParam(value = "keyword") String keyword,
+                                                        @RequestParam(value = "page", defaultValue = "1") int page,
+                                                        @RequestParam(value = "size", defaultValue = "5") int size,
+                                                        @RequestParam(value = "sort", defaultValue = "latest") String sort) {
+        // 키워드가 최소 2글자인지 확인
+        if (keyword == null || keyword.trim().length() < 2) {
+            throw new IllegalArgumentException("키워드는 최소 2글자 이상이어야 합니다.");
+        }
+
+        Pageable pageable = PageRequest.of(page - 1, size, getSort(sort));
+        List<PostListResponse> postListResponse = postService.searchPosts(currentUser, keyword, pageable);
+
+        // 페이징 정보 생성
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", postListResponse);
+        response.put("pageNumber", pageable.getPageNumber() + 1);
+        response.put("pageSize", pageable.getPageSize());
+        response.put("isFirst", pageable.getPageNumber() == 0);
+        response.put("isLast", postListResponse.size() < pageable.getPageSize());
+
+        return new ApiResponse<>(response);
+    }
+
 //    /**
 //     * 최근 인기 게시글 목록 추천
 //     */

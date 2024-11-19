@@ -251,6 +251,49 @@ public class PostService {
     }
 
     /**
+     * 전체 게시글 키워드 검색 (페이징, 정렬 default: 최신순)
+     * @param currentUser - 현재 사용자 정보
+     * @param keyword     - 검색 키워드
+     * @param pageable    - 페이징 정보
+     */
+    public List<PostListResponse> searchPosts(CurrentUser currentUser, String keyword, Pageable pageable) {
+        log.info("전체 게시글 키워드 검색 - Keyword: {}", keyword);
+
+        // 현재 사용자가 블로그 주인인지 확인
+        boolean isOwner = currentUser != null;
+
+        // 게시글 검색
+        List<PostListResponse> postListResponses = postRepository.searchPosts(keyword, isOwner, pageable);
+
+        // 게시글 ID 목록 추출
+        List<Long> postIds = postListResponses.stream()
+                .map(PostListResponse::getPostId)
+                .collect(Collectors.toList());
+
+        // 게시글 내용에서 대표 이미지와 요약 추출
+        for (PostListResponse postResponse : postListResponses) {
+            // 대표 이미지 추출
+            String representativeImage = extractFirstImage(postResponse.getContentSnippet());
+            postResponse.setRepresentativeImage(representativeImage);
+
+            // 내용 요약 추출
+            String contentSnippet = extractContentSnippet(postResponse.getContentSnippet());
+            postResponse.setContentSnippet(contentSnippet);
+        }
+
+        // 태그를 한 번에 조회하여 매핑
+        Map<Long, List<String>> postTagsMap = tagService.findTagsByPostIds(postIds);
+
+        for (PostListResponse postResponse : postListResponses) {
+            List<String> tags = postTagsMap.get(postResponse.getPostId());
+            postResponse.setTags(tags != null ? tags : new ArrayList<>());
+        }
+
+        log.info("전체 게시글 키워드 검색 완료 - Keyword: {}", keyword);
+        return postListResponses;
+    }
+
+    /**
      * 조회수 증가
      * @param postId - 게시글 ID
      * @param httpRequest - HTTP 요청
