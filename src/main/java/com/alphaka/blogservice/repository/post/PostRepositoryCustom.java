@@ -17,6 +17,9 @@ public interface PostRepositoryCustom {
     // 게시글 ID로 게시글 상세 조회
     Optional<PostResponse> getPostResponse(Long postId, Long userId);
 
+    // 전체 게시글 키워드 검색 (페이징)
+    List<PostListResponse> searchPosts(String keyword, boolean isOwner, Pageable pageable);
+
     // 인기 게시글 조회 (좋아요순 9개)
 //    List<PostListProjectionImpl> findPopularPosts();
 }
