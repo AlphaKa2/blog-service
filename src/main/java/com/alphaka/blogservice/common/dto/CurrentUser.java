@@ -1,17 +1,23 @@
 package com.alphaka.blogservice.common.dto;
 
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.ToString;
 
+/**
+ * 현재 로그인된 사용자의 정보를 담는 DTO
+ */
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class CurrentUser {
-    private Long userId;
-    private String nickname;
-    private String profileImage;
-    private String role;
+@Builder
+@ToString
+public class CurrentUser extends AbstractUser {
+    /** 사용자 역할 (필수) */
+    @NotBlank(message = "사용자 역할은 필수 값입니다.")
+    private final String role;
+
+    public CurrentUser(Long userId, String nickname, String profileImage, String role) {
+        super(userId, nickname, profileImage);
+        this.role = role;
+    }
 }
