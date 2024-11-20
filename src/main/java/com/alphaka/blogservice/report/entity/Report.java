@@ -1,42 +1,43 @@
 package com.alphaka.blogservice.report.entity;
 
 import com.alphaka.blogservice.comment.entity.Comment;
+import com.alphaka.blogservice.common.entity.CreateBaseEntity;
 import com.alphaka.blogservice.post.entity.Post;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Getter
+@Builder
 @Table(name = "reports")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Report {
+@AllArgsConstructor
+public class Report extends CreateBaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private Long reporterId; // 신고자 ID
+    private Long reporterId;
 
     @Column
-    private Long reportedId; // 신고 대상 ID
+    private Long reportedId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
-    private Post post; // 신고된 게시글
+    private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comment_id")
-    private Comment comment; // 신고된 댓글
+    private Comment comment;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Reason reason; // 신고 사유
+    private Reason reason;
 
     @Lob
-    private String details; // 신고 상세 내용
+    private String details;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

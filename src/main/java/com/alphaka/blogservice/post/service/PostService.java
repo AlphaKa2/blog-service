@@ -3,8 +3,7 @@ package com.alphaka.blogservice.post.service;
 import com.alphaka.blogservice.client.feign.UserClient;
 import com.alphaka.blogservice.common.dto.CurrentUser;
 import com.alphaka.blogservice.common.dto.UserDTO;
-import com.alphaka.blogservice.post.dto.PostCreateRequest;
-import com.alphaka.blogservice.post.dto.PostUpdateRequest;
+import com.alphaka.blogservice.post.dto.PostRequest;
 import com.alphaka.blogservice.post.dto.PostListResponse;
 import com.alphaka.blogservice.post.dto.PostResponse;
 import com.alphaka.blogservice.blog.entity.Blog;
@@ -55,14 +54,12 @@ public class PostService {
      * @return Long - 작성한 게시글 번호
      */
     @Transactional
-    public Long createPost(CurrentUser currentUser, PostCreateRequest request) {
-        log.info("게시글 작성 요청 - Nickname: {}, Title: {}", currentUser.getNickname(), request.getTitle());
+    public Long createPost(CurrentUser currentUser, PostRequest request) {
+        log.info("사용자 ID[{}] 게시글 작성 요청", currentUser.getUserId());
 
         // 현재 사용자의 블로그 확인
-        Blog blog = blogRepository.findByUserId(currentUser.getUserId())
-                .orElseThrow(BlogNotFoundException::new);
+        Blog blog = blogRepository.findByUserId(currentUser.getUserId()).orElseThrow(BlogNotFoundException::new);
 
-        // 게시글 생성
         Post post = Post.builder()
                 .userId(currentUser.getUserId())
                 .blog(blog)
@@ -92,14 +89,14 @@ public class PostService {
      * @param currentUser - 현재 사용자 정보
      * @param postId - 게시글 ID
      */
-    public PostUpdateRequest getPostUpdateData(CurrentUser currentUser, Long postId) {
+    public PostRequest getPostUpdateData(CurrentUser currentUser, Long postId) {
         log.info("게시글 수정 데이터 조회 요청 - Post ID: {}", postId);
 
         // 게시글 존재와 작성자 여부 확인
         Post post = validatePostOwnership(postId, currentUser.getUserId());
 
         // 게시글 수정 데이터 조회
-        PostUpdateRequest postUpdateRequest = PostUpdateRequest.builder()
+        PostRequest postUpdateRequest = PostRequest.builder()
                 .title(post.getTitle())
                 .content(post.getContent())
                 .isPublic(post.isPublic())
@@ -119,7 +116,7 @@ public class PostService {
      * @return Long - 수정한 게시글 번호
      */
     @Transactional
-    public Long updatePost(CurrentUser currentUser, Long postId, PostUpdateRequest request) {
+    public Long updatePost(CurrentUser currentUser, Long postId, PostRequest request) {
         log.info("게시글 수정 요청 - Post ID: {}", postId);
 
         // 게시글 존재와 작성자 확인

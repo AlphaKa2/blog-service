@@ -3,24 +3,20 @@ package com.alphaka.blogservice.post.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
-@Setter
-@NoArgsConstructor
+@Builder
 @AllArgsConstructor
-public class PostCreateRequest {
+public class PostRequest {
 
-    @NotBlank(message = "제목은 필수입니다.")
+    @NotBlank(message = "제목을 입력해주세요.")
     @Size(min = 1, max = 100, message = "제목은 1자 이상 100자 이하여야 합니다.")
     private String title;
 
-    @NotBlank(message = "내용은 필수입니다.")
+    @NotBlank(message = "내용을 입력해주세요.")
     private String content;
 
     @JsonProperty("isPublic")

@@ -2,26 +2,23 @@ package com.alphaka.blogservice.post.entity;
 
 import com.alphaka.blogservice.blog.entity.Blog;
 import com.alphaka.blogservice.comment.entity.Comment;
+import com.alphaka.blogservice.common.entity.DeleteBaseEntity;
 import com.alphaka.blogservice.like.entity.Like;
-import com.alphaka.blogservice.tag.entity.PostTag;
 import com.alphaka.blogservice.report.entity.Report;
+import com.alphaka.blogservice.tag.entity.PostTag;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Getter
+@Builder
 @Table(name = "posts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Post {
+@AllArgsConstructor
+public class Post extends DeleteBaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,10 +39,10 @@ public class Post {
     private String content;
 
     @Column(nullable = false)
-    private boolean isPublic = true; // 공개 여부 (기본값: 공개)
+    private boolean isPublic = true;
 
     @Column(nullable = false)
-    private boolean isCommentable = true; // 댓글 허용 여부 (기본값: 공개)
+    private boolean isCommentable = true;
 
     @Column(nullable = false)
     private int viewCount = 0;
@@ -59,29 +56,8 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Like> likes = new ArrayList<>();
 
-    @CreationTimestamp
-    @Column(updatable = false, nullable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(insertable = false)
-    private LocalDateTime updatedAt;
-
-    @Column
-    private LocalDateTime deletedAt;
-
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Report> reports = new ArrayList<>();
-
-    @Builder
-    public Post(Long userId, Blog blog, String title, String content, boolean isPublic, boolean isCommentable) {
-        this.userId = userId;
-        this.blog = blog;
-        this.title = title;
-        this.content = content;
-        this.isPublic = isPublic;
-        this.isCommentable = isCommentable;
-    }
 
     // 게시글 수정
     public void updatePost(String title, String content, boolean isPublic, boolean isCommentable) {

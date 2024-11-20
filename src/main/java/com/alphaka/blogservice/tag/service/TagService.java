@@ -245,5 +245,3 @@ public class TagService {
         log.info("태그 제거 완료 - Post ID: {}, Tags: {}", post.getId(), tagsToRemove);
     }
 }
-
-

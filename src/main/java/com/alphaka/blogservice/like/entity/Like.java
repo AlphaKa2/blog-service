@@ -1,21 +1,18 @@
 package com.alphaka.blogservice.like.entity;
 
 import com.alphaka.blogservice.comment.entity.Comment;
+import com.alphaka.blogservice.common.entity.CreateBaseEntity;
 import com.alphaka.blogservice.post.entity.Post;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Getter
+@Builder
 @Table(name = "likes")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Like {
+@AllArgsConstructor
+public class Like extends CreateBaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,15 +28,4 @@ public class Like {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comment_id")
     private Comment comment;
-
-    @CreationTimestamp
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    @Builder
-    public Like(Long userId, Post post, Comment comment) {
-        this.userId = userId;
-        this.post = post;
-        this.comment = comment;
-    }
 }

@@ -2,10 +2,9 @@ package com.alphaka.blogservice.post.controller;
 
 import com.alphaka.blogservice.common.dto.CurrentUser;
 import com.alphaka.blogservice.common.response.ApiResponse;
-import com.alphaka.blogservice.post.dto.PostCreateRequest;
+import com.alphaka.blogservice.post.dto.PostRequest;
 import com.alphaka.blogservice.post.dto.PostListResponse;
 import com.alphaka.blogservice.post.dto.PostResponse;
-import com.alphaka.blogservice.post.dto.PostUpdateRequest;
 import com.alphaka.blogservice.post.service.PostService;
 import com.alphaka.blogservice.util.S3Utils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,10 +30,12 @@ public class PostController {
 
     /**
      * 게시글 작성
+     * @param currentUser - 현재 사용자 정보
+     * @param request - 게시글 작성 요청 데이터
      */
     @PostMapping
     public ApiResponse<Long> createPost(CurrentUser currentUser,
-                                        @Valid @RequestBody PostCreateRequest request) {
+                                        @Valid @RequestBody PostRequest request) {
         Long response = postService.createPost(currentUser, request);
         return new ApiResponse<>(response);
     }
@@ -43,9 +44,9 @@ public class PostController {
      * 게시글 수정 데이터 조회
      */
     @GetMapping("/{postId}/edit")
-    public ApiResponse<PostUpdateRequest> getPostUpdateData(CurrentUser currentUser,
+    public ApiResponse<PostRequest> getPostUpdateData(CurrentUser currentUser,
                                                             @PathVariable("postId") Long postId) {
-        PostUpdateRequest response = postService.getPostUpdateData(currentUser, postId);
+        PostRequest response = postService.getPostUpdateData(currentUser, postId);
         return new ApiResponse<>(response);
     }
 
@@ -55,7 +56,7 @@ public class PostController {
     @PutMapping("/{postId}")
     public ApiResponse<Long> updatePost(CurrentUser currentUser,
                                         @PathVariable("postId") Long postId,
-                                        @Valid @RequestBody PostUpdateRequest request) {
+                                        @Valid @RequestBody PostRequest request) {
         Long response = postService.updatePost(currentUser, postId, request);
         return new ApiResponse<>(response);
     }
