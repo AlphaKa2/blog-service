@@ -1,8 +1,8 @@
 package com.alphaka.blogservice.comment.repository;
 
 import com.alphaka.blogservice.comment.dto.CommentResponse;
-import com.alphaka.blogservice.entity.QComment;
-import com.alphaka.blogservice.entity.QLike;
+import com.alphaka.blogservice.comment.entity.QComment;
+import com.alphaka.blogservice.like.entity.QLike;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;

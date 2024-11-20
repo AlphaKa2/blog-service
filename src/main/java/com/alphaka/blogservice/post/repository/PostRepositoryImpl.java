@@ -1,11 +1,11 @@
 package com.alphaka.blogservice.post.repository;
 
-import com.alphaka.blogservice.util.QueryDslUtils;
+import com.alphaka.blogservice.comment.entity.QComment;
+import com.alphaka.blogservice.like.entity.QLike;
 import com.alphaka.blogservice.post.dto.PostListResponse;
 import com.alphaka.blogservice.post.dto.PostResponse;
-import com.alphaka.blogservice.entity.QComment;
-import com.alphaka.blogservice.entity.QLike;
-import com.alphaka.blogservice.entity.QPost;
+import com.alphaka.blogservice.post.entity.QPost;
+import com.alphaka.blogservice.util.QueryDslUtils;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;

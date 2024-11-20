@@ -1,7 +1,7 @@
 package com.alphaka.blogservice.tag.repository;
 
-import com.alphaka.blogservice.entity.QPostTag;
-import com.alphaka.blogservice.entity.QTag;
+import com.alphaka.blogservice.tag.entity.QPostTag;
+import com.alphaka.blogservice.tag.entity.QTag;
 import com.alphaka.blogservice.tag.entity.Tag;
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
