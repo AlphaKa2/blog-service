@@ -17,7 +17,7 @@ pipeline {
 
         // 도커 허브 및 깃허브 자격증명
         DOCKERHUB_CREDENTIAL = 'dockerhub-credential-alphaka'
-        GITHUB_CREDENTIAL = 'git-credential'
+        GITHUB_CREDENTIAL = 'git-credential-hojun'
 
         // 매니페스트 저장소
         MANIFEST_REPO = 'github.com/AlphaKa2/k8s-manifest.git'
