@@ -5,7 +5,7 @@ FROM openjdk:17-jdk-alpine
 WORKDIR /app/blog-service
 
 # Elastic APM Java Agent 다운로드
-ADD https://github.com/elastic/apm-agent-java/releases/download/v1.50.0/elastic-apm-agent-1.50.0.jar /opt/elastic-apm-agent.jar
+ADD https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.50.0/elastic-apm-agent-1.50.0.jar /opt/elastic-apm-agent.jar
 
 # gradle로 빌드된 jar파일을 현재 디렉토리에 복사
 COPY build/libs/*.jar app.jar
