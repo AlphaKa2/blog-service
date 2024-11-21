@@ -14,15 +14,4 @@ COPY build/libs/*.jar app.jar
 EXPOSE 8003
 
 # 애플리케이션 실행
-ENTRYPOINT [
-  "java",
-  "-javaagent:/opt/elastic-apm-agent.jar",
-  "-Delastic.apm.service_name=${ELASTIC_APM_SERVICE_NAME}",
-  "-Delastic.apm.server_urls=${ELASTIC_APM_SERVER_URLS}",
-  "-Delastic.apm.application_packages=${ELASTIC_APM_APPLICATION_PACKAGES}",
-  "-Delastic.apm.secret_token=${ELASTIC_APM_SECRET_TOKEN}",
-  "-Delastic.apm.environment=${ELASTIC_APM_ENVIRONMENT}",
-  "-jar",
-  "app.jar",
-  "--spring.profiles.active=develop"
-]
+ENTRYPOINT ["java", "-javaagent:/opt/elastic-apm-agent.jar", "-Delastic.apm.service_name=${ELASTIC_APM_SERVICE_NAME}", "-Delastic.apm.server_urls=${ELASTIC_APM_SERVER_URLS}", "-Delastic.apm.application_packages=${ELASTIC_APM_APPLICATION_PACKAGES}", "-Delastic.apm.secret_token=${ELASTIC_APM_SECRET_TOKEN}", "-Delastic.apm.environment=${ELASTIC_APM_ENVIRONMENT}", "-jar", "app.jar", "--spring.profiles.active=develop"]
