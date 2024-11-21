@@ -8,19 +8,18 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * User Signup Kafka Consumer
- * User-Service에서 User가 가입하면 해당 User의 블로그를 생성
+ * User-Service에서 발생하는 이벤트를 구독하는 컨슈머
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class UserSignupConsumer {
+public class UserServiceConsumer {
 
     private final BlogService blogService;
 
     /**
-     * user-signup 토픽을 구독하고 메시지를 수신하여 블로그 생성
-     * @param userId - 새로 가입한 User의 ID
+     * 사용자 가입 이벤트를 수신하여 새로운 사용자의 블로그를 생성
+     * @param userId - 사용자 ID
      */
     @KafkaListener(topics = "user-signup", groupId = "blog-service")
     public void consumeUserSignupEvent(String userId) {
@@ -40,4 +39,24 @@ public class UserSignupConsumer {
             throw e;
         }
     }
+
+    /**
+     * 사용자 탈퇴 이벤트를 수신하여 사용자의 블로그를 삭제
+     * @param userId - 사용자 ID
+     */
+//    @KafkaListener(topics = "user-withdrawal", groupId = "blog-service")
+//    public void consumeUserWithdrawalEvent(String userId) {
+//        log.info("user-withdrawal 이벤트 수신: {}", userId);
+//        try {
+//            Long parsedUserId = Long.parseLong(userId);
+//            blogService.deleteBlogForUser(parsedUserId);
+//            log.info("블로그 삭제 완료: User ID: {}", parsedUserId);
+//        } catch (NumberFormatException e) {
+//            log.error("잘못된 사용자 ID: {}", userId, e);
+//            throw e;
+//        } catch (Exception e) {
+//            log.error("알 수 없는 오류 발생: User ID: {} - {}", userId, e.getMessage(), e);
+//            throw e;
+//        }
+//    }
 }
