@@ -20,4 +20,5 @@ ENTRYPOINT java -javaagent:/opt/elastic-apm-agent.jar \
   -Delastic.apm.application_packages=${ELASTIC_APM_APPLICATION_PACKAGES} \
   -Delastic.apm.secret_token=${ELASTIC_APM_SECRET_TOKEN} \
   -Delastic.apm.environment=${ELASTIC_APM_ENVIRONMENT} \
+  -Delastic.apm.central_config=false \
   -jar app.jar --spring.profiles.active=develop
