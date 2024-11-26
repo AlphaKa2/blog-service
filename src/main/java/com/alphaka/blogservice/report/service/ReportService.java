@@ -39,6 +39,11 @@ public class ReportService {
         // 신고자 정보 확인
         UserDTO targetUser = userClient.findUserById(request.getTargetId()).getData();
 
+        if (targetUser == null) {
+            log.warn("신고 대상 사용자가 존재하지 않습니다.");
+            throw new InvalidReportTargetException();
+        }
+
         // 현재 사용자와 신고자 정보가 같은지 확인
         if (currentUser.getUserId().equals(request.getTargetId())) {
             log.warn("잘못된 신고 대상입니다.");
@@ -67,6 +72,11 @@ public class ReportService {
         // 신고할 게시글 정보 확인
         Post post = postRepository.findById(request.getTargetId()).orElseThrow(InvalidReportTargetException::new);
 
+        if (post == null) {
+            log.warn("신고 대상 게시글이 존재하지 않습니다.");
+            throw new InvalidReportTargetException();
+        }
+
         // 현재 사용자와 게시글 작성자 정보가 같은지 확인
         if (currentUser.getUserId().equals(post.getUserId())) {
             log.warn("잘못된 신고 대상입니다.");
@@ -94,6 +104,11 @@ public class ReportService {
 
         // 신고 대상 확인
         Comment comment = commentRepository.findById(request.getTargetId()).orElseThrow(InvalidReportTargetException::new);
+
+        if (comment == null) {
+            log.warn("신고 대상 댓글이 존재하지 않습니다.");
+            throw new InvalidReportTargetException();
+        }
 
         // 현재 사용자와 댓글 작성자 정보가 같은지 확인
         if (currentUser.getUserId().equals(comment.getUserId())) {

@@ -2,6 +2,7 @@ package com.alphaka.blogservice.report.dto;
 
 import com.alphaka.blogservice.report.entity.Reason;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,6 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class ReportRequest {
 
     @NotNull(message = "신고 대상 ID를 입력해주세요.")
