@@ -1,18 +1,15 @@
 package com.alphaka.blogservice.comment.service;
 
 import com.alphaka.blogservice.client.feign.UserClient;
+import com.alphaka.blogservice.comment.dto.CommentCreateRequest;
+import com.alphaka.blogservice.comment.dto.CommentResponse;
+import com.alphaka.blogservice.comment.dto.CommentUpdateRequest;
+import com.alphaka.blogservice.comment.entity.Comment;
+import com.alphaka.blogservice.comment.repository.CommentRepository;
 import com.alphaka.blogservice.common.dto.CurrentUser;
 import com.alphaka.blogservice.common.dto.UserDTO;
-import com.alphaka.blogservice.comment.dto.CommentCreateRequest;
-import com.alphaka.blogservice.comment.dto.CommentUpdateRequest;
-import com.alphaka.blogservice.comment.dto.CommentResponse;
-import com.alphaka.blogservice.comment.entity.Comment;
+import com.alphaka.blogservice.exception.custom.*;
 import com.alphaka.blogservice.post.entity.Post;
-import com.alphaka.blogservice.exception.custom.CommentNotFoundException;
-import com.alphaka.blogservice.exception.custom.ParentCommentNotFoundException;
-import com.alphaka.blogservice.exception.custom.PostNotFoundException;
-import com.alphaka.blogservice.exception.custom.UnauthorizedException;
-import com.alphaka.blogservice.comment.repository.CommentRepository;
 import com.alphaka.blogservice.post.repository.PostRepository;
 import com.alphaka.blogservice.util.CacheUtils;
 import lombok.RequiredArgsConstructor;
@@ -49,16 +46,16 @@ public class CommentService {
         // 댓글을 작성하려는 게시글 존재 확인
         Post post = postRepository.findById(request.getPostId()).orElseThrow(PostNotFoundException::new);
 
-        // 댓글 작성 가능 여부 확인
+        // 게시글에 댓글 작성 가능한 상태인지 검증
         if (!post.isCommentable()) {
             log.error("댓글 작성 불가능한 게시글입니다 - Post ID: {}", post.getId());
-            throw new UnauthorizedException();
+            throw new PrivateParentCommentException();
         }
 
         // 부모 댓글이 있을 경우 확인
         Comment parentComment = null;
         if (request.getParentId() != null) {
-            parentComment = commentRepository.findById(request.getParentId()).orElseThrow(ParentCommentNotFoundException::new);
+            parentComment = validateParentComment(request.getParentId(), post);
         }
 
         // 댓글 생성
@@ -122,6 +119,9 @@ public class CommentService {
     public Long updateComment(CurrentUser currentUser, Long commentId, CommentUpdateRequest request) {
         log.info("댓글 수정 요청 - Comment ID: {}", commentId);
 
+        // 댓글 수정 권한 확인
+        Comment comment = validateCommentOwnership(commentId, currentUser.getUserId());
+
         // 댓글을 작성하려는 게시글 존재 확인
         Post post = postRepository.findByCommentsId(commentId).orElseThrow(PostNotFoundException::new);
 
@@ -130,9 +130,6 @@ public class CommentService {
             log.error("댓글 작성이 중단된 게시글입니다. - Post ID: {}", post.getId());
             throw new UnauthorizedException();
         }
-
-        // 댓글 수정 권한 확인
-        Comment comment = validateCommentOwnership(commentId, currentUser.getUserId());
 
         // 댓글 수정
         comment.updateComment(request.getContent(), request.isPublic());
@@ -223,7 +220,9 @@ public class CommentService {
                 }
             }
             // 비공개 댓글이 아니거나, 작성자나 게시글 소유자인 경우에만 사용자 ID 수집
-            authorIds.add(comment.getAuthorId());
+            if (comment.getAuthorId() != null) {
+                authorIds.add(comment.getAuthorId());
+            }
         }
 
         // 사용자 정보 조회
@@ -252,6 +251,32 @@ public class CommentService {
 
         log.info("특정 게시글의 댓글 조회 완료 - Post ID: {}", postId);
         return commentHierarchy;
+    }
+
+    /**
+     * 부모 댓글 검증
+     * @param parentId - 부모 댓글 ID
+     * @param post - 게시글 정보
+     * @return Comment - 부모 댓글 정보
+     */
+    private Comment validateParentComment(Long parentId, Post post) {
+        // 부모 댓글 존재 확인
+        Comment parentComment = commentRepository.findById(parentId).orElseThrow(ParentCommentNotFoundException::new);
+
+        // 부모 댓글이 작성하려는 게시글과 같은 게시글에 속해 있는지 검증
+        if (!parentComment.getPost().getId().equals(post.getId())) {
+            log.error("부모 댓글이 작성하려는 게시글과 다릅니다 - Parent Comment ID: {}, Parent Post ID: {}, Current Post ID: {}",
+                    parentComment.getId(), parentComment.getPost().getId(), post.getId());
+            throw new InvalidParentCommentException();
+        }
+
+        // 부모 댓글이 비공개 상태인지 검증
+        if (!parentComment.isPublic()) {
+            log.error("부모 댓글이 비공개 상태입니다 - Parent Comment ID: {}", parentComment.getId());
+            throw new InvalidParentCommentException();
+        }
+
+        return parentComment;
     }
 
     /**
