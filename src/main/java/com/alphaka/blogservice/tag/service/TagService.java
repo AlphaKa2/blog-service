@@ -2,6 +2,7 @@ package com.alphaka.blogservice.tag.service;
 
 import com.alphaka.blogservice.client.feign.UserClient;
 import com.alphaka.blogservice.common.dto.UserDTO;
+import com.alphaka.blogservice.exception.custom.UserNotFoundException;
 import com.alphaka.blogservice.tag.dto.TagListResponse;
 import com.alphaka.blogservice.blog.entity.Blog;
 import com.alphaka.blogservice.post.entity.Post;
@@ -44,6 +45,10 @@ public class TagService {
 
         // 요청 받은 닉네임의 사용자 ID 조회
         UserDTO user = userClient.findUserByNickname(nickname).getData();
+        if (user == null) {
+            log.error("사용자를 찾을 수 없음 - Nickname: {}", nickname);
+            throw new UserNotFoundException();
+        }
 
         // 해당 사용자의 블로그 조회
         Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
@@ -161,7 +166,7 @@ public class TagService {
      */
     private List<Tag> findOrCreateTags(List<String> tagNames) {
         // 기존 태그 조회
-        List<Tag> existingTags = tagRepository.findByTagNameIn(tagNames);
+        List<Tag> existingTags = new ArrayList<>(tagRepository.findByTagNameIn(tagNames));
         Set<String> existingTagNames = existingTags.stream()
                 .map(Tag::getTagName)
                 .collect(Collectors.toSet());
