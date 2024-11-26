@@ -28,6 +28,8 @@ public enum ErrorCode {
     // 댓글 관련
     COMMENT_NOT_FOUND(404, "CMT001", "존재하지 않는 댓글입니다."),
     PARENT_COMMENT_NOT_FOUND(404, "CMT002", "존재하지 않는 부모 댓글입니다."),
+    INVALID_PARENT_COMMENT(400, "CMT003", "유효하지 않은 부모 댓글입니다."),
+    PRIVATE_PARENT_COMMENT(400, "CMT004", "비공개된 부모 댓글입니다."),
 
     // 신고 관련
     INVALID_REPORT_TARGET(400, "RPT001", "신고 대상이 올바르지 않습니다."),
