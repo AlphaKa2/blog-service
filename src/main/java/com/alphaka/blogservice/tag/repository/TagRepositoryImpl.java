@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,7 +28,7 @@ public class TagRepositoryImpl implements TagRepositoryCustom {
 
         jdbcTemplate.batchUpdate(sql, tags, tags.size(), (PreparedStatement ps, Tag tag) -> {
             ps.setString(1, tag.getTagName());
-            ps.setTimestamp(2, Timestamp.valueOf(tag.getCreatedAt()));
+            ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
         });
     }
 
