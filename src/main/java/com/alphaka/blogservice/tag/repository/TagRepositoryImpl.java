@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,10 +23,11 @@ public class TagRepositoryImpl implements TagRepositoryCustom {
     // 태그 배치 삽입
     @Override
     public void batchInsert(List<Tag> tags) {
-        String sql = "INSERT INTO tags (tag_name) VALUES (?)";
+        String sql = "INSERT INTO tags (tag_name, created_at) VALUES (?, ?)";
 
         jdbcTemplate.batchUpdate(sql, tags, tags.size(), (PreparedStatement ps, Tag tag) -> {
             ps.setString(1, tag.getTagName());
+            ps.setTimestamp(2, Timestamp.valueOf(tag.getCreatedAt()));
         });
     }
 
