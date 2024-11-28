@@ -8,9 +8,8 @@ WORKDIR /app/blog-service
 COPY build/libs/*.jar app.jar
 
 # Elastic APM Agent 다운로드 및 복사
-RUN apt-get update && apt-get install -y wget \
-    && wget -O elastic-apm-agent.jar https://search.maven.org/remotecontent?filepath=co/elastic/apm/elastic-apm-agent/1.50.0/elastic-apm-agent-1.50.0.jar \
-    && apt-get remove -y wget && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache wget \
+    && wget -O elastic-apm-agent.jar https://search.maven.org/remotecontent?filepath=co/elastic/apm/elastic-apm-agent/1.50.0/elastic-apm-agent-1.50.0.jar
 
 # 포트 노출
 EXPOSE 8003
