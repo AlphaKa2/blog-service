@@ -17,8 +17,6 @@ COPY . .
 # 빌드 (테스트 제외)
 RUN gradle clean build -Dspring.profiles.active=develop -x test --no-daemon || true
 
----
-
 # 런타임 스테이지
 FROM openjdk:17-jdk-slim
 
