@@ -1,30 +1,11 @@
-# 빌드 스테이지
-FROM gradle:8.3-jdk17 AS build-stage
+# 자바 버전 선택
+FROM openjdk:17-jdk-alpine
 
 # 작업 디렉토리 설정
 WORKDIR /app/blog-service
 
-# 의존성 캐시를 활용하기 위해 build.gradle 파일만 먼저 복사
-COPY build.gradle settings.gradle ./
-COPY gradle ./gradle
-
-# Gradle 의존성 다운로드
-RUN gradle dependencies --no-daemon
-
-# 전체 프로젝트 복사
-COPY . .
-
-# 빌드 (테스트 제외)
-RUN gradle clean build -Dspring.profiles.active=develop -x test --no-daemon || true
-
-# 런타임 스테이지
-FROM openjdk:17-jdk-slim
-
-# 작업 디렉토리 설정
-WORKDIR /app/blog-service
-
-# 빌드 결과물 복사
-COPY --from=build-stage /app/build/libs/*.jar app.jar
+# gradle로 빌드된 jar파일을 현재 디렉토리에 복사
+COPY build/libs/*.jar app.jar
 
 # Elastic APM Agent 다운로드 및 복사
 RUN apt-get update && apt-get install -y wget \
