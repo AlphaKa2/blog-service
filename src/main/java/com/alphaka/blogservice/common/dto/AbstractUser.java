@@ -1,6 +1,8 @@
 package com.alphaka.blogservice.common.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -8,13 +10,15 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
+@AllArgsConstructor
+@NoArgsConstructor
 public abstract class AbstractUser {
     /** 사용자 ID */
-    protected final Long userId;
+    private Long userId;
 
     /** 사용자 닉네임 */
-    protected final String nickname;
+    private String nickname;
 
     /** 사용자 프로필 이미지 */
-    protected final String profileImage;
+    private String profileImage;
 }
