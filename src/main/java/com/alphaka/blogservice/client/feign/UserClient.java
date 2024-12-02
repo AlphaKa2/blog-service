@@ -30,7 +30,7 @@ public interface UserClient {
      * @return ApiResponse<UserDTO> - 사용자 정보
      */
     @GetMapping("/users/info")
-    ApiResponse<UserDTO> findUserById(@RequestParam("id") Long id);
+    ApiResponse<UserDTO> findUserById(@RequestParam("userId") Long id);
 
     /**
      * 사용자 ID 목록으로 사용자 조회 (user-service에서 결정되는 API Path에 따라 변경될 수 있음)
