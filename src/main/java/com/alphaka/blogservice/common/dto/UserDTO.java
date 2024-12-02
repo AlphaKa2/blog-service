@@ -1,5 +1,7 @@
 package com.alphaka.blogservice.common.dto;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,7 +12,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserDTO extends AbstractUser {
 
-    public UserDTO(Long userId, String nickname, String profileImage) {
+    @JsonCreator
+    public UserDTO(@JsonProperty("userId") Long userId,
+                   @JsonProperty("nickname") String nickname,
+                   @JsonProperty("profileImage") String profileImage) {
         super(userId, nickname, profileImage);
     }
 }
