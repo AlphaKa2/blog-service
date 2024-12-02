@@ -14,7 +14,6 @@ import java.util.List;
 
 @Entity
 @Getter
-@Builder
 @Table(name = "posts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -58,6 +57,16 @@ public class Post extends DeleteBaseEntity {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Report> reports = new ArrayList<>();
+
+    @Builder
+    public Post(Long userId, Blog blog, String title, String content, boolean isPublic, boolean isCommentable) {
+        this.userId = userId;
+        this.blog = blog;
+        this.title = title;
+        this.content = content;
+        this.isPublic = isPublic;
+        this.isCommentable = isCommentable;
+    }
 
     // 게시글 수정
     public void updatePost(String title, String content, boolean isPublic, boolean isCommentable) {

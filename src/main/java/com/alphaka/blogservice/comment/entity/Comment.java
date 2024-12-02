@@ -12,7 +12,6 @@ import java.util.List;
 
 @Entity
 @Getter
-@Builder
 @Table(name = "comments")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -47,6 +46,15 @@ public class Comment extends DeleteBaseEntity {
 
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Report> reports = new ArrayList<>();
+
+    @Builder
+    public Comment(Long userId, Post post, String content, boolean isPublic, Comment parent) {
+        this.userId = userId;
+        this.post = post;
+        this.content = content;
+        this.isPublic = isPublic;
+        this.parent = parent;
+    }
 
     // 댓글 수정
     public void updateComment(String content, boolean isPublic) {

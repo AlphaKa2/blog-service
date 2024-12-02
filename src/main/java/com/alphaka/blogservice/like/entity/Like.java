@@ -8,7 +8,6 @@ import lombok.*;
 
 @Entity
 @Getter
-@Builder
 @Table(name = "likes")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -28,4 +27,11 @@ public class Like extends CreateBaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comment_id")
     private Comment comment;
+
+    @Builder
+    public Like(Long userId, Post post, Comment comment) {
+        this.userId = userId;
+        this.post = post;
+        this.comment = comment;
+    }
 }

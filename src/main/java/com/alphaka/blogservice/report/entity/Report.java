@@ -8,7 +8,6 @@ import lombok.*;
 
 @Entity
 @Getter
-@Builder
 @Table(name = "reports")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -41,7 +40,17 @@ public class Report extends CreateBaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ReportStatus status = ReportStatus.PENDING; // 신고 처리 상태
+    private ReportStatus status = ReportStatus.PENDING;
+
+    @Builder
+    public Report(Long reporterId, Long reportedId, Post post, Comment comment, Reason reason, String details) {
+        this.reporterId = reporterId;
+        this.reportedId = reportedId;
+        this.post = post;
+        this.comment = comment;
+        this.reason = reason;
+        this.details = details;
+    }
 
     // 사용자 신고
     public static Report reportUser(Long reporterId, Long reportedId, Reason reason, String details) {

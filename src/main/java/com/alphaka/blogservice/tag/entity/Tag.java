@@ -9,7 +9,6 @@ import java.util.List;
 
 @Entity
 @Getter
-@Builder
 @Table(name = "tags", uniqueConstraints = @UniqueConstraint(columnNames = "tagName"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -24,4 +23,9 @@ public class Tag extends CreateBaseEntity {
 
     @OneToMany(mappedBy = "tag", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<PostTag> postTags = new ArrayList<>();
+
+    @Builder
+    public Tag(String tagName) {
+        this.tagName = tagName;
+    }
 }
