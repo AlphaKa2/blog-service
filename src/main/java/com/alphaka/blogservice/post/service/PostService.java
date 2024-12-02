@@ -1,17 +1,18 @@
 package com.alphaka.blogservice.post.service;
 
+import com.alphaka.blogservice.blog.entity.Blog;
+import com.alphaka.blogservice.blog.repository.BlogRepository;
 import com.alphaka.blogservice.client.feign.UserClient;
 import com.alphaka.blogservice.common.dto.CurrentUser;
+import com.alphaka.blogservice.common.dto.PageResponse;
 import com.alphaka.blogservice.common.dto.UserDTO;
-import com.alphaka.blogservice.post.dto.PostRequest;
-import com.alphaka.blogservice.post.dto.PostListResponse;
-import com.alphaka.blogservice.post.dto.PostResponse;
-import com.alphaka.blogservice.blog.entity.Blog;
-import com.alphaka.blogservice.post.entity.Post;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
 import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
-import com.alphaka.blogservice.blog.repository.BlogRepository;
+import com.alphaka.blogservice.post.dto.PostListResponse;
+import com.alphaka.blogservice.post.dto.PostRequest;
+import com.alphaka.blogservice.post.dto.PostResponse;
+import com.alphaka.blogservice.post.entity.Post;
 import com.alphaka.blogservice.post.repository.PostRepository;
 import com.alphaka.blogservice.tag.service.TagService;
 import com.alphaka.blogservice.util.CacheUtils;
@@ -205,20 +206,18 @@ public class PostService {
     @Cacheable(value = "blogService:cache:postList",
             key = "'blog' + @postService.getBlogIdByNickname(#nickname) + ':page' + #pageable.pageNumber + ':size' + #pageable.pageSize",
             unless = "#result == null || #result.isEmpty()")
-    public List<PostListResponse> getPostListResponse(CurrentUser currentUser, String nickname, Pageable pageable) {
+    public PageResponse<PostListResponse> getPostListResponse(CurrentUser currentUser, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}", nickname);
 
         // 블로그 존재 여부 확인
-        log.info("블로그 존재 여부 확인 - Nickname: {}", nickname);
         UserDTO user = userClient.findUserByNickname(nickname).getData();
         Blog blog = blogRepository.findByUserId(user.getUserId()).orElseThrow(BlogNotFoundException::new);
 
         // 현재 사용자가 블로그 주인인지 확인
         boolean isOwner = currentUser != null && currentUser.getUserId().equals(blog.getUserId());
-        log.info("현재 사용자가 블로그 주인인지 확안: {}" , isOwner);
+        log.info("현재 사용자가 블로그 주인인지 확안: {}", isOwner);
 
         // 게시글 목록 조회
-        log.info("게시글 목록 조회");
         List<PostListResponse> postListResponses = postRepository.getPostListResponse(blog.getId(), isOwner, pageable);
 
         // 게시글 ID 목록 추출
@@ -228,11 +227,8 @@ public class PostService {
 
         // 게시글 내용에서 대표 이미지와 요약 추출
         for (PostListResponse postResponse : postListResponses) {
-            // 대표 이미지 추출
             String representativeImage = extractFirstImage(postResponse.getContentSnippet());
             postResponse.setRepresentativeImage(representativeImage);
-
-            // 내용 요약 추출
             String contentSnippet = extractContentSnippet(postResponse.getContentSnippet());
             postResponse.setContentSnippet(contentSnippet);
         }
@@ -245,8 +241,12 @@ public class PostService {
             postResponse.setTags(tags != null ? tags : new ArrayList<>());
         }
 
-        log.info("블로그 게시글 목록 조회 완료 - Nickname: {}", nickname);
-        return postListResponses;
+        // 전체 페이지 수와 총 아이템 수 계산
+        long totalElements = postRepository.countPostsByBlogId(blog.getId(), isOwner);
+        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+
+        // 페이지네이션 정보를 포함한 응답 반환
+        return new PageResponse<>(postListResponses, totalPages, totalElements, pageable.getPageNumber() + 1, pageable.getPageSize());
     }
 
     /**
@@ -255,7 +255,7 @@ public class PostService {
      * @param keyword     - 검색 키워드
      * @param pageable    - 페이징 정보
      */
-    public List<PostListResponse> searchPosts(CurrentUser currentUser, String keyword, Pageable pageable) {
+    public PageResponse<PostListResponse> searchPosts(CurrentUser currentUser, String keyword, Pageable pageable) {
         log.info("전체 게시글 키워드 검색 - Keyword: {}", keyword);
 
         // 현재 사용자가 블로그 주인인지 확인
@@ -288,8 +288,21 @@ public class PostService {
             postResponse.setTags(tags != null ? tags : new ArrayList<>());
         }
 
+        // 총 게시글 수 조회
+        long totalElements = postRepository.countPostsByKeyword(keyword, isOwner);
+
+        // 전체 페이지 수 계산
+        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+
+        // 페이징 정보를 포함한 PageResponse 생성
         log.info("전체 게시글 키워드 검색 완료 - Keyword: {}", keyword);
-        return postListResponses;
+        return PageResponse.<PostListResponse>builder()
+                .content(postListResponses)
+                .totalPages(totalPages)
+                .totalElements(totalElements)
+                .currentPage(pageable.getPageNumber() + 1)  // 1-based index for currentPage
+                .pageSize(pageable.getPageSize())
+                .build();
     }
 
     /**

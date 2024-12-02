@@ -177,6 +177,93 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         return query.fetch();
     }
 
+    // 블로그 ID로 게시글 수 조회
+    @Override
+    public Long countPostsByBlogId(Long blogId, boolean isOwner) {
+        QPost post = QPost.post;
+
+        JPAQuery<Long> query = queryFactory
+                .select(post.count())
+                .from(post)
+                .where(post.blog.id.eq(blogId));
+
+        // 블로그 소유자가 아닐 경우 비공개 게시글 제외
+        if (!isOwner) {
+            query.where(post.isPublic.isTrue());
+        }
+
+        return query.fetchOne();
+    }
+
+    // 키워드로 게시글 수 조회
+    @Override
+    public Long countPostsByKeyword(String keyword, boolean isOwner) {
+        QPost post = QPost.post;
+
+        // 키워드 검색 조건 추가 (제목은 대소문자 구분 없이, 내용은 대소문자 구분하여 검색)
+        BooleanExpression keywordCondition = post.title.containsIgnoreCase(keyword)
+                .or(post.content.contains(keyword));
+
+        // 기본 쿼리: 키워드 조건에 맞는 게시글의 개수를 구하는 쿼리
+        JPAQuery<Long> query = queryFactory
+                .select(post.count())
+                .from(post)
+                .where(keywordCondition);
+
+        // 비공개 게시글 필터링 (소유자가 아닐 경우)
+        if (!isOwner) {
+            query.where(post.isPublic.isTrue());
+        }
+
+        // 결과 조회 (총 게시글 수 반환)
+        return query.fetchOne();
+    }
+
+//    @Override
+//    public List<PostListResponse> getPosts(Pageable pageable) {
+//        QPost post = QPost.post;
+//        QLike like = QLike.like;
+//        QComment comment = QComment.comment;
+//
+//        // 좋아요 수 서브쿼리
+//        Expression<Long> likeCount = JPAExpressions
+//                .select(like.count())
+//                .from(like)
+//                .where(like.post.id.eq(post.id));
+//
+//        // 댓글 수 서브쿼리
+//        Expression<Long> commentCount = JPAExpressions
+//                .select(comment.count())
+//                .from(comment)
+//                .where(comment.post.id.eq(post.id));
+//
+//        // 게시글 목록 조회
+//        JPAQuery<PostListResponse> query = queryFactory
+//                .select(Projections.constructor(PostListResponse.class,
+//                        post.id.as("postId"),
+//                        post.title,
+//                        likeCount,
+//                        commentCount,
+//                        post.viewCount,
+//                        post.createdAt,
+//                        post.updatedAt
+//                ))
+//                .from(post);
+//
+//        List<OrderSpecifier<?>> orderSpecifiers = QueryDslUtils.getAllOrderSpecifiers(pageable, "post");
+//
+//        if (!orderSpecifiers.isEmpty()) {
+//            query.orderBy(orderSpecifiers.toArray(new OrderSpecifier[0]));
+//        }
+//
+//        // 페이징 적용
+//        query.offset(pageable.getOffset());
+//        query.limit(pageable.getPageSize());
+//
+//        // 결과 조회
+//        return query.fetch();
+//    }
+
 //    // 인기 게시글 목록 (좋아요 순 9개 조회)
 //    @Override
 //    public List<PostListProjectionImpl> findPopularPosts() {

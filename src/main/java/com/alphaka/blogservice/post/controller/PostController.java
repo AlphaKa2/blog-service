@@ -1,9 +1,10 @@
 package com.alphaka.blogservice.post.controller;
 
 import com.alphaka.blogservice.common.dto.CurrentUser;
+import com.alphaka.blogservice.common.dto.PageResponse;
 import com.alphaka.blogservice.common.response.ApiResponse;
-import com.alphaka.blogservice.post.dto.PostRequest;
 import com.alphaka.blogservice.post.dto.PostListResponse;
+import com.alphaka.blogservice.post.dto.PostRequest;
 import com.alphaka.blogservice.post.dto.PostResponse;
 import com.alphaka.blogservice.post.service.PostService;
 import com.alphaka.blogservice.util.S3Utils;
@@ -82,15 +83,17 @@ public class PostController {
                                                                @RequestParam(value = "size", defaultValue = "5") int size,
                                                                @RequestParam(value = "sort", defaultValue = "latest") String sort) {
         Pageable pageable = PageRequest.of(page - 1, size, getSort(sort));
-        List<PostListResponse> postListResponse = postService.getPostListResponse(currentUser, nickname, pageable);
+        PageResponse<PostListResponse> pageResponse = postService.getPostListResponse(currentUser, nickname, pageable);
 
-        // 페이징 정보 생성
+        // 페이지네이션 정보 포함하여 응답 생성
         Map<String, Object> response = new HashMap<>();
-        response.put("content", postListResponse);
-        response.put("pageNumber", pageable.getPageNumber() + 1);
-        response.put("pageSize", pageable.getPageSize());
-        response.put("isFirst", pageable.getPageNumber() == 0);
-        response.put("isLast", postListResponse.size() < pageable.getPageSize());
+        response.put("content", pageResponse.getContent());
+        response.put("pageNumber", pageResponse.getCurrentPage());
+        response.put("pageSize", pageResponse.getPageSize());
+        response.put("totalPages", pageResponse.getTotalPages());
+        response.put("totalElements", pageResponse.getTotalElements());
+        response.put("isFirst", pageResponse.getCurrentPage() == 1);
+        response.put("isLast", pageResponse.getCurrentPage() == pageResponse.getTotalPages());
 
         return new ApiResponse<>(response);
     }
@@ -120,16 +123,21 @@ public class PostController {
             throw new IllegalArgumentException("키워드는 최소 2글자 이상이어야 합니다.");
         }
 
+        // 페이징 정보 설정
         Pageable pageable = PageRequest.of(page - 1, size, getSort(sort));
-        List<PostListResponse> postListResponse = postService.searchPosts(currentUser, keyword, pageable);
+
+        // 게시글 검색
+        PageResponse<PostListResponse> pageResponse = postService.searchPosts(currentUser, keyword, pageable);
 
         // 페이징 정보 생성
         Map<String, Object> response = new HashMap<>();
-        response.put("content", postListResponse);
-        response.put("pageNumber", pageable.getPageNumber() + 1);
-        response.put("pageSize", pageable.getPageSize());
-        response.put("isFirst", pageable.getPageNumber() == 0);
-        response.put("isLast", postListResponse.size() < pageable.getPageSize());
+        response.put("content", pageResponse.getContent());
+        response.put("pageNumber", pageResponse.getCurrentPage());
+        response.put("pageSize", pageResponse.getPageSize());
+        response.put("totalPages", pageResponse.getTotalPages());
+        response.put("totalElements", pageResponse.getTotalElements());
+        response.put("isFirst", pageResponse.getCurrentPage() == 1);
+        response.put("isLast", pageResponse.getCurrentPage() == pageResponse.getTotalPages());
 
         return new ApiResponse<>(response);
     }
