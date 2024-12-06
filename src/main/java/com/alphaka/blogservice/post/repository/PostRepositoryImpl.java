@@ -10,6 +10,7 @@ import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -92,8 +93,9 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .where(like.post.id.eq(post.id));
 
         // 현재 사용자의 좋아요 여부 서브쿼리
-        Expression<Boolean> isLiked = JPAExpressions
-                .select(like.count().gt(0))
+        Expression<Boolean> isLiked = (userId == null)
+                ? Expressions.asBoolean(false)  // 비로그인 상태에서는 false로 설정
+                : JPAExpressions.select(like.count().gt(0))
                 .from(like)
                 .where(like.post.id.eq(post.id).and(like.userId.eq(userId)))
                 .exists();
