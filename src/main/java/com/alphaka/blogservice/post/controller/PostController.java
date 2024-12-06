@@ -18,7 +18,6 @@ import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -46,7 +45,7 @@ public class PostController {
      */
     @GetMapping("/{postId}/edit")
     public ApiResponse<PostRequest> getPostUpdateData(CurrentUser currentUser,
-                                                            @PathVariable("postId") Long postId) {
+                                                      @PathVariable("postId") Long postId) {
         PostRequest response = postService.getPostUpdateData(currentUser, postId);
         return new ApiResponse<>(response);
     }
@@ -78,10 +77,10 @@ public class PostController {
      */
     @GetMapping("/blog/{nickname}")
     public ApiResponse<Map<String, Object>> getBlogPostList(@Nullable CurrentUser currentUser,
-                                                               @PathVariable("nickname") String nickname,
-                                                               @RequestParam(value = "page", defaultValue = "1") int page,
-                                                               @RequestParam(value = "size", defaultValue = "5") int size,
-                                                               @RequestParam(value = "sort", defaultValue = "latest") String sort) {
+                                                            @PathVariable("nickname") String nickname,
+                                                            @RequestParam(value = "page", defaultValue = "1") int page,
+                                                            @RequestParam(value = "size", defaultValue = "5") int size,
+                                                            @RequestParam(value = "sort", defaultValue = "latest") String sort) {
         Pageable pageable = PageRequest.of(page - 1, size, getSort(sort));
         PageResponse<PostListResponse> pageResponse = postService.getPostListResponse(currentUser, nickname, pageable);
 
