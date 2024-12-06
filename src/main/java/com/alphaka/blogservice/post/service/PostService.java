@@ -173,20 +173,24 @@ public class PostService {
     public PostResponse getPostResponse(HttpServletRequest request, CurrentUser currentUser, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
-        // 게시글이 비공개인지 확인 후 처리
+        // 게시글 조회
         Post post = postRepository.findById(postId).orElseThrow(PostNotFoundException::new);
-        if (!post.isPublic() && !currentUser.getUserId().equals(post.getUserId())) {
-            throw new UnauthorizedException();
+
+        // 비공개 게시글 접근 권한 확인
+        if (!post.isPublic()) {
+            if (currentUser == null || !currentUser.getUserId().equals(post.getUserId())) {
+                throw new UnauthorizedException();
+            }
         }
 
         // 게시글 상세 정보 조회
-        PostResponse postResponse = postRepository.getPostResponse(postId, currentUser.getUserId())
+        PostResponse postResponse = postRepository.getPostResponse(postId, currentUser != null ? currentUser.getUserId() : null)
                 .orElseThrow(PostNotFoundException::new);
 
-        // 게시글 작성자 입력
+        // 게시글 작성자 정보 설정
         postResponse.setAuthor(userClient.findUserById(postResponse.getAuthorId()).getData().getNickname());
 
-        // 게시글 태그 입력
+        // 게시글 태그 정보 설정
         List<String> tags = tagService.findTagsByPostId(postId);
         postResponse.setTags(tags);
 
