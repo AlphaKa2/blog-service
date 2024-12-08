@@ -135,7 +135,7 @@ public class PostService {
         // 게시글 수정 후, 블로그의 postList와 tagList 캐시 무효화 및 해당 게시글의 postDetails 캐시 무효화
         Long blogId = post.getBlog().getId();
         cacheUtils.evictPostListAndTagListCache(blogId);
-        cacheUtils.evictPostDetailsCache(postId);
+        cacheUtils.evictPostDetailsCache(postId, currentUser.getUserId());
 
         return post.getId();
     }
@@ -158,7 +158,7 @@ public class PostService {
         Long blogId = post.getBlog().getId();
         cacheUtils.evictCommentsCache(postId);
         cacheUtils.evictPostListAndTagListCache(blogId);
-        cacheUtils.evictPostDetailsCache(postId);
+        cacheUtils.evictPostDetailsCache(postId, currentUser.getUserId());
     }
 
     /**
@@ -169,7 +169,9 @@ public class PostService {
      * @return PostDetailResponse - 게시글 상세 정보
      */
     @Transactional
-    @Cacheable(value = "blogService:cache:postDetails", key = "'post' + #postId", unless = "#result == null")
+    @Cacheable(value = "blogService:cache:postDetails",
+            key = "'post:' + #postId + ':user:' + (#currentUser != null ? #currentUser.userId : 'anonymous')",
+            unless = "#result == null || (!#result.isPublic && (#currentUser == null || #currentUser.userId != #result.authorId))")
     public PostResponse getPostResponse(HttpServletRequest request, CurrentUser currentUser, Long postId) {
         log.info("게시글 상세 조회 요청 - Post ID: {}", postId);
 
@@ -208,9 +210,9 @@ public class PostService {
      * @param nickname - 블로그 주인 닉네임
      */
     @Cacheable(value = "blogService:cache:postList",
-            key = "'blog' + @postService.getBlogIdByNickname(#nickname) + ':page' + #pageable.pageNumber + " +
-                    "':size' + #pageable.pageSize + ':sort' + #pageable.sort.toString()",
-            unless = "#result == null || #result.isEmpty()")
+            key = "'blog:' + @postService.getBlogIdByNickname(#nickname) + ':page:' + #pageable.pageNumber + ':user:' + " +
+                    "(#currentUser != null ? #currentUser.userId : 'anonymous')",
+            unless = "#result == null || #result.content.isEmpty()")
     public PageResponse<PostListResponse> getPostListResponse(CurrentUser currentUser, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}", nickname);
 

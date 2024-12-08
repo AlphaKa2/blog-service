@@ -13,7 +13,6 @@ import java.util.Set;
 public class CacheUtils {
 
     private final RedisTemplate<String, Object> redisTemplate;
-
     private static final String PREFIX = "blogService:cache";
 
     /**
@@ -23,16 +22,19 @@ public class CacheUtils {
      * @param args - 로그 메시지 인자
      */
     private void deleteKeysByPattern(String pattern, String logMessage, Object... args) {
+        log.info("삭제할 키 패턴: {}", pattern);
         Set<String> keys = redisTemplate.keys(pattern);
         if (keys != null && !keys.isEmpty()) {
             redisTemplate.delete(keys);
             log.info(logMessage, args);
+        } else {
+            log.warn("삭제할 키가 없습니다. 패턴: {}", pattern);
         }
     }
 
     // 특정 블로그의 게시글 목록 캐시 무효화
     public void evictPostListCache(Long blogId) {
-        String pattern = String.format("%s:postList::blog:%d:*", PREFIX, blogId);
+        String pattern = String.format("%s:postList::blog:%d:page*", PREFIX, blogId);
         deleteKeysByPattern(pattern, "블로그 ID {}의 게시글 목록 캐시가 초기화 되었습니다.", blogId);
     }
 
@@ -49,8 +51,8 @@ public class CacheUtils {
     }
 
     // 특정 게시글 상세 조회 캐시 무효화
-    public void evictPostDetailsCache(Long postId) {
-        String key = String.format("%s:postDetails::post:%d", PREFIX, postId);
+    public void evictPostDetailsCache(Long postId, Long userId) {
+        String key = String.format("%s:postDetails::post:%d:user:%d", PREFIX, postId, userId);
         redisTemplate.delete(key);
         log.info("게시글 ID {}의 상세 정보 캐시가 초기화 되었습니다.", postId);
     }
