@@ -1,21 +1,20 @@
 package com.alphaka.blogservice.tag.service;
 
+import com.alphaka.blogservice.blog.entity.Blog;
+import com.alphaka.blogservice.blog.repository.BlogRepository;
 import com.alphaka.blogservice.client.feign.UserClient;
 import com.alphaka.blogservice.common.dto.UserDTO;
+import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
 import com.alphaka.blogservice.exception.custom.UserNotFoundException;
-import com.alphaka.blogservice.tag.dto.TagListResponse;
-import com.alphaka.blogservice.blog.entity.Blog;
 import com.alphaka.blogservice.post.entity.Post;
+import com.alphaka.blogservice.tag.dto.TagListResponse;
 import com.alphaka.blogservice.tag.entity.PostTag;
 import com.alphaka.blogservice.tag.entity.Tag;
-import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
-import com.alphaka.blogservice.blog.repository.BlogRepository;
 import com.alphaka.blogservice.tag.repository.PostTagRepository;
 import com.alphaka.blogservice.tag.repository.TagRepository;
 import com.alphaka.blogservice.util.CacheUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +38,6 @@ public class TagService {
      * @param nickname - 블로그 주인의 닉네임
      * @return List<TagListResponse> - 태그 목록과 목록별 게시글 수
      */
-    @Cacheable(value = "blogService:tagList", key = "#nickname", unless = "#result == null || #result.isEmpty()")
     public List<TagListResponse> getTagListForBlog(String nickname) {
         log.info("블로그의 태그 목록 조회 시작 - Nickname: {}", nickname);
 
