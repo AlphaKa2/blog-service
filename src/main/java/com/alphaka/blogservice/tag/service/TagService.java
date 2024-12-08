@@ -39,7 +39,7 @@ public class TagService {
      * @param nickname - 블로그 주인의 닉네임
      * @return List<TagListResponse> - 태그 목록과 목록별 게시글 수
      */
-    @Cacheable(value = "blogService:tagList", key = "@postService.getBlogIdByNickname(nickname)", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(value = "blogService:tagList", key = "#nickname", unless = "#result == null || #result.isEmpty()")
     public List<TagListResponse> getTagListForBlog(String nickname) {
         log.info("블로그의 태그 목록 조회 시작 - Nickname: {}", nickname);
 
