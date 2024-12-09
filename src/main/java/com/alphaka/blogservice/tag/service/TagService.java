@@ -50,14 +50,17 @@ public class TagService {
 
         // 해당 사용자의 블로그 조회
         Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
+        log.info("블로그 조회 완료 - Blog ID: {}, User ID: {}", blog.getId(), blog.getUserId());
 
         // 해당 블로그에 등록된 태그 목록 조회
         List<Tag> tags = postTagRepository.findTagsByBlogId(blog.getId());
+        log.info("블로그의 태그 목록 조회 완료 - Blog ID: {}, Tag Count: {}", blog.getId(), tags.size());
 
         // 태그별 게시글 수 계산하여 태그 목록과 함께 반환 (해당 블로그의 게시글로 한정)
         List<TagListResponse> tagList = tags.stream()
                 .map(tag -> {
                     // 특정 블로그에서 해당 태그가 달린 게시글 수 계산
+                    log.info("태그별 게시글 수 계산 - Tag ID: {}", tag.getId());
                     int postCount = postTagRepository.countByBlogIdAndTagId(blog.getId(), tag.getId());
                     return new TagListResponse(tag.getTagName(), postCount);
                 })
