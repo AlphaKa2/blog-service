@@ -24,7 +24,7 @@ public interface PostTagRepository extends JpaRepository<PostTag, Long>, PostTag
     List<String> findTagsByPostId(@Param("postId") Long postId);
 
     // 블로그에 속한 게시글들의 태그 목록 조회
-    @Query("SELECT pt.tag FROM PostTag pt WHERE pt.post.blog.id = :blogId")
+    @Query("SELECT DISTINCT t FROM PostTag pt JOIN pt.post p JOIN pt.tag t WHERE p.blog.id = :blogId")
     List<Tag> findTagsByBlogId(@Param("blogId") Long blogId);
 
     // 특정 블로그의 태그별 게시글 수 조회
