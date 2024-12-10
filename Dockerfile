@@ -11,6 +11,17 @@ COPY build/libs/*.jar app.jar
 RUN apk add --no-cache wget \
     && wget -O elastic-apm-agent.jar https://search.maven.org/remotecontent?filepath=co/elastic/apm/elastic-apm-agent/1.50.0/elastic-apm-agent-1.50.0.jar
 
+
+# CA 인증서 복사 (Jenkins workspace에서 docker build 시 build context에 CA 파일 포함)
+COPY elastic-stack-ca.pem /tmp/elastic-stack-ca.pem
+
+# CA 인증서를 truststore에 추가
+RUN keytool -importcert -noprompt \
+    -alias elastic-ca \
+    -keystore /usr/local/openjdk-17/lib/security/cacerts \
+    -storepass changeit \
+    -file /tmp/elastic-stack-ca.pem
+
 # 포트 노출
 EXPOSE 8003
 
