@@ -20,7 +20,7 @@ COPY elastic-stack-ca.pem /tmp/elastic-stack-ca.pem
 # CA 인증서를 truststore에 추가
 RUN keytool -importcert -noprompt \
     -alias elastic-ca \
-    -keystore /usr/local/openjdk-17/lib/security/cacerts \
+    -keystore /etc/ssl/certs/java/cacerts \
     -storepass changeit \
     -file /tmp/elastic-stack-ca.pem
 
