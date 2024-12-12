@@ -64,6 +64,13 @@ public class LikeService {
         // 좋아요 변경 시, 관련 캐시 무효화
         cacheUtils.evictLikeCountForPost(postId);
         cacheUtils.evictUserLikeOnPost(userId, postId);
+
+        // 좋아요 변경 시, 게시글 상세 캐시 삭제
+        cacheUtils.evictPostDetailsCache(postId, userId);
+
+        // 좋아요 변경 시, 블로그 게시글 목록 캐시 삭제
+        Long blogId = post.getBlog().getId();
+        cacheUtils.evictPostListCache(blogId);
     }
 
     /**
@@ -99,8 +106,12 @@ public class LikeService {
             log.info("댓글 좋아요 - Comment ID: {}, User ID: {}", commentId, userId);
         }
 
-        // 좋아요 변경 시, 관련 캐시 무효화
+        // 댓글 좋아요 변경 시, 관련 캐시 무효화
         cacheUtils.evictLikeCountForComment(commentId);
         cacheUtils.evictUserLikeOnComment(userId, commentId);
+
+        // 댓글이 속한 게시글의 댓글 캐시 삭제
+        Post post = comment.getPost();
+        cacheUtils.evictCommentsCache(post.getId());
     }
 }

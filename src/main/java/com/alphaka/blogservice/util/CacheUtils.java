@@ -96,4 +96,11 @@ public class CacheUtils {
         evictCommentsCache(postId);
         evictPostListCache(blogId);
     }
+
+    // 특정 게시글의 댓글, 게시글 목록, 게시글 상세 캐시 무효화
+    public void evictCommentsAndPostListAndDetailsCache(Long blogId, Long postId, Long userId) {
+        evictCommentsCache(postId); // 댓글 캐시 삭제
+        evictPostListCache(blogId); // 게시글 목록 캐시 삭제
+        evictPostDetailsCache(postId, userId); // 게시글 상세 캐시 삭제
+    }
 }

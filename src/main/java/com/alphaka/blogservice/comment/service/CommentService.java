@@ -72,7 +72,7 @@ public class CommentService {
 
         // 댓글 작성 후, 댓글 캐시와 블로그 게시글 목록 캐시 무효화
         Long blogId = post.getBlog().getId();
-        cacheUtils.evictCommentsAndPostListCache(blogId, post.getId());
+        cacheUtils.evictCommentsAndPostListAndDetailsCache(blogId, post.getId(), currentUser.getUserId());
 
         return comment.getId();
     }
@@ -138,7 +138,7 @@ public class CommentService {
 
         // 댓글 수정 후, 댓글 캐시와 블로그 게시글 목록 캐시 무효화 (블로그 ID 사용)
         Long blogId = post.getBlog().getId();
-        cacheUtils.evictCommentsAndPostListCache(blogId, post.getId());
+        cacheUtils.evictCommentsAndPostListAndDetailsCache(blogId, post.getId(), currentUser.getUserId());
 
         return comment.getId();
     }
@@ -162,7 +162,7 @@ public class CommentService {
         // 댓글 삭제 후, 댓글 캐시와 블로그 게시글 목록 캐시 무효화 (블로그 ID 사용)
         Post post = comment.getPost();
         Long blogId = post.getBlog().getId();
-        cacheUtils.evictCommentsAndPostListCache(blogId, post.getId());
+        cacheUtils.evictCommentsAndPostListAndDetailsCache(blogId, post.getId(), currentUser.getUserId());
     }
 
     /**
