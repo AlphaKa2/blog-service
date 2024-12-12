@@ -34,7 +34,7 @@ public class Post extends DeleteBaseEntity {
     private String title;
 
     @Lob // HTML 형식의 큰 데이터 저장
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
     @Column(nullable = false)
