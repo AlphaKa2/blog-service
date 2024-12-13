@@ -49,7 +49,7 @@ public class TagService {
         }
 
         // 해당 사용자의 블로그 조회
-        Blog blog = blogRepository.findById(user.getUserId()).orElseThrow(BlogNotFoundException::new);
+        Blog blog = blogRepository.findByUserId(user.getUserId()).orElseThrow(BlogNotFoundException::new);
         log.info("블로그 조회 완료 - Blog ID: {}, User ID: {}", blog.getId(), blog.getUserId());
 
         // 해당 블로그에 등록된 태그 목록 조회
