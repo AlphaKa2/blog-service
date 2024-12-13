@@ -209,10 +209,13 @@ public class PostService {
      * @param currentUser - 현재 사용자 정보
      * @param nickname - 블로그 주인 닉네임
      */
-    @Cacheable(value = "blogService:cache:postList",
-            key = "'blog:' + @postService.getBlogIdByNickname(#nickname) + ':page:' + #pageable.pageNumber + ':user:' + " +
-                    "(#currentUser != null ? #currentUser.userId : 'anonymous')",
-            unless = "#result == null || #result.content.isEmpty()")
+    @Cacheable(
+            value = "blogService:cache:postList",
+            key = "'blog:' + @postService.getBlogIdByNickname(#nickname) + ':page:' + #pageable.pageNumber + ':size:' + " +
+                    "#pageable.pageSize + ':sort:' + #pageable.sort.toString() + " +
+                    "':user:' + (#currentUser != null ? #currentUser.userId : 'anonymous')",
+            unless = "#result == null || #result.content.isEmpty()"
+    )
     public PageResponse<PostListResponse> getPostListResponse(CurrentUser currentUser, String nickname, Pageable pageable) {
         log.info("블로그 게시글 목록 조회 요청 - Nickname: {}", nickname);
 
