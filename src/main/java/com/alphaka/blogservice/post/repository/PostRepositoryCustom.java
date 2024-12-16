@@ -1,5 +1,6 @@
 package com.alphaka.blogservice.post.repository;
 
+import com.alphaka.blogservice.post.dto.AllPostListResponse;
 import com.alphaka.blogservice.post.dto.PostListResponse;
 import com.alphaka.blogservice.post.dto.PostResponse;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,9 @@ public interface PostRepositoryCustom {
 
     // 키워드로 게시글 수 조회
     Long countPostsByKeyword(String keyword, boolean isOwner);
+
+    // 전체 공개 게시글 조회 (페이징)
+    List<AllPostListResponse> findAllPublicPosts(Pageable pageable);
 
     // 전체 게시글 조회 (페이징) - 관리자용
 //    List<PostListResponse> getPosts(Pageable pageable);

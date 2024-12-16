@@ -9,6 +9,7 @@ import com.alphaka.blogservice.common.dto.UserDTO;
 import com.alphaka.blogservice.exception.custom.BlogNotFoundException;
 import com.alphaka.blogservice.exception.custom.PostNotFoundException;
 import com.alphaka.blogservice.exception.custom.UnauthorizedException;
+import com.alphaka.blogservice.post.dto.AllPostListResponse;
 import com.alphaka.blogservice.post.dto.PostListResponse;
 import com.alphaka.blogservice.post.dto.PostRequest;
 import com.alphaka.blogservice.post.dto.PostResponse;
@@ -257,6 +258,51 @@ public class PostService {
 
         // 페이지네이션 정보를 포함한 응답 반환
         return new PageResponse<>(postListResponses, totalPages, totalElements, pageable.getPageNumber() + 1, pageable.getPageSize());
+    }
+
+    /**
+     * 전체 게시글 목록 조회
+     * @param currentUser - 현재 사용자 정보
+     * @param pageable - 페이징 정보
+     */
+    public PageResponse<AllPostListResponse> getAllPostListResponse(CurrentUser currentUser, Pageable pageable) {
+        log.info("전체 게시글 목록 조회 요청");
+
+        List<AllPostListResponse> postListResponses = postRepository.findAllPublicPosts(pageable);
+
+        // 게시글 ID 목록 추출
+        List<Long> postIds = postListResponses.stream()
+                .map(AllPostListResponse::getPostId)
+                .collect(Collectors.toList());
+
+        // 게시글 내용에서 대표 이미지와 요약 추출
+        for (AllPostListResponse postResponse : postListResponses) {
+            String representativeImage = extractFirstImage(postResponse.getContentSnippet());
+            postResponse.setRepresentativeImage(representativeImage);
+            String contentSnippet = extractContentSnippet(postResponse.getContentSnippet());
+            postResponse.setContentSnippet(contentSnippet);
+        }
+
+        // 태그를 한 번에 조회하여 매핑
+        Map<Long, List<String>> postTagsMap = tagService.findTagsByPostIds(postIds);
+
+        for (AllPostListResponse postResponse : postListResponses) {
+            List<String> tags = postTagsMap.get(postResponse.getPostId());
+            postResponse.setTags(tags != null ? tags : new ArrayList<>());
+        }
+
+        // 전체 페이지 수와 총 아이템 수 계산
+        long totalElements = postRepository.countByIsPublicTrue();
+        int totalPages = (int) Math.ceil((double) totalElements / pageable.getPageSize());
+
+        // 페이지네이션 정보를 포함한 응답 반환
+        return PageResponse.<AllPostListResponse>builder()
+                .content(postListResponses)
+                .totalPages(totalPages)
+                .totalElements(totalElements)
+                .currentPage(pageable.getPageNumber() + 1)
+                .pageSize(pageable.getPageSize())
+                .build();
     }
 
     /**

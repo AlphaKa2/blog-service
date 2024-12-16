@@ -3,6 +3,7 @@ package com.alphaka.blogservice.post.controller;
 import com.alphaka.blogservice.common.dto.CurrentUser;
 import com.alphaka.blogservice.common.dto.PageResponse;
 import com.alphaka.blogservice.common.response.ApiResponse;
+import com.alphaka.blogservice.post.dto.AllPostListResponse;
 import com.alphaka.blogservice.post.dto.PostListResponse;
 import com.alphaka.blogservice.post.dto.PostRequest;
 import com.alphaka.blogservice.post.dto.PostResponse;
@@ -83,6 +84,30 @@ public class PostController {
                                                             @RequestParam(value = "sort", defaultValue = "latest") String sort) {
         Pageable pageable = PageRequest.of(page - 1, size, getSort(sort));
         PageResponse<PostListResponse> pageResponse = postService.getPostListResponse(currentUser, nickname, pageable);
+
+        // 페이지네이션 정보 포함하여 응답 생성
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", pageResponse.getContent());
+        response.put("pageNumber", pageResponse.getCurrentPage());
+        response.put("pageSize", pageResponse.getPageSize());
+        response.put("totalPages", pageResponse.getTotalPages());
+        response.put("totalElements", pageResponse.getTotalElements());
+        response.put("isFirst", pageResponse.getCurrentPage() == 1);
+        response.put("isLast", pageResponse.getCurrentPage() == pageResponse.getTotalPages());
+
+        return new ApiResponse<>(response);
+    }
+
+    /**
+     * 전체 블로그의 게시글 목록 조회 (페이징, 정렬 default: 최신순)
+     */
+    @GetMapping("/all")
+    public ApiResponse<Map<String, Object>> getAllPostList(@Nullable CurrentUser currentUser,
+                                                           @RequestParam(value = "page", defaultValue = "1") int page,
+                                                           @RequestParam(value = "size", defaultValue = "16") int size,
+                                                           @RequestParam(value = "sort", defaultValue = "latest") String sort) {
+        Pageable pageable = PageRequest.of(page - 1, size, getSort(sort));
+        PageResponse<AllPostListResponse> pageResponse = postService.getAllPostListResponse(currentUser, pageable);
 
         // 페이지네이션 정보 포함하여 응답 생성
         Map<String, Object> response = new HashMap<>();

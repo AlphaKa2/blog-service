@@ -2,6 +2,7 @@ package com.alphaka.blogservice.post.repository;
 
 import com.alphaka.blogservice.comment.entity.QComment;
 import com.alphaka.blogservice.like.entity.QLike;
+import com.alphaka.blogservice.post.dto.AllPostListResponse;
 import com.alphaka.blogservice.post.dto.PostListResponse;
 import com.alphaka.blogservice.post.dto.PostResponse;
 import com.alphaka.blogservice.post.entity.QPost;
@@ -120,6 +121,59 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
                 .fetchOne();
 
         return Optional.ofNullable(postResponse);
+    }
+
+    // 전체 공개 게시글 조회 (페이징)
+    @Override
+    public List<AllPostListResponse> findAllPublicPosts(Pageable pageable) {
+        QPost post = QPost.post;
+        QLike like = QLike.like;
+        QComment comment = QComment.comment;
+
+        // 좋아요 수 서브쿼리
+        Expression<Long> likeCount = JPAExpressions
+                .select(like.count())
+                .from(like)
+                .where(like.post.id.eq(post.id));
+
+        // 댓글 수 서브쿼리
+        Expression<Long> commentCount = JPAExpressions
+                .select(comment.count())
+                .from(comment)
+                .where(comment.post.id.eq(post.id));
+
+        // 게시글 목록 조회
+        JPAQuery<AllPostListResponse> query = queryFactory
+                .select(Projections.constructor(AllPostListResponse.class,
+                        post.id.as("postId"),
+                        post.userId,
+                        post.title,
+                        post.content,
+                        // 썸네일, 태그는 서비스에서 처리
+                        likeCount,
+                        commentCount,
+                        post.viewCount,
+                        post.createdAt,
+                        post.updatedAt
+                ))
+                .from(post)
+                .where(post.isPublic.isTrue());
+
+        // 정렬 조건 적용
+        List<OrderSpecifier<?>> orderSpecifiers = QueryDslUtils.getAllOrderSpecifiers(pageable, "post");
+        if (!orderSpecifiers.isEmpty()) {
+            query.orderBy(orderSpecifiers.toArray(new OrderSpecifier[0]));
+        } else {
+            // 기본 정렬 조건 설정 (정렬 조건이 없을 때)
+            query.orderBy(post.createdAt.desc());
+        }
+
+        // 페이징 적용
+        query.offset(pageable.getOffset());
+        query.limit(pageable.getPageSize());
+
+        // 결과 조회
+        return query.fetch();
     }
 
     // 게시글 키워드 검색 (페이징)

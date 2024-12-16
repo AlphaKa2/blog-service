@@ -19,4 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostRepositor
 
     // 댓글 ID로 게시글 조회
     Optional<Post> findByCommentsId(Long commentId);
+
+    // 모든 공개 게시글 수 조회
+    Long countByIsPublicTrue();
 }
